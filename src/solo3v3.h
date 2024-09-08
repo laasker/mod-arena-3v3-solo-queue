@@ -31,10 +31,10 @@ constexpr uint32 BATTLEGROUND_QUEUE_1v1 = 11;
 constexpr BattlegroundQueueTypeId bgQueueTypeId1v1 = (BattlegroundQueueTypeId)((int)BATTLEGROUND_QUEUE_5v5 + 1);
 
 // custom 3v3 Arena
-constexpr uint32 ARENA_TEAM_SOLO_3v3 = 4;
+constexpr uint32 ARENA_TEAM_SOLO_3v3 = 5;
 constexpr uint32 ARENA_TYPE_3v3_SOLO = 4;
-constexpr uint32 ARENA_SLOT_SOLO_3v3 = 4;
-constexpr uint32 BATTLEGROUND_QUEUE_3v3_SOLO = 12;
+constexpr uint32 ARENA_SLOT_SOLO_3v3 = 2; // 4 (need to match ARENA_TEAM_SOLO_3v3 to show the team)
+constexpr uint32 BATTLEGROUND_QUEUE_3v3_SOLO = 12; // 12 BATTLEGROUND_QUEUE_5v5
 constexpr BattlegroundQueueTypeId bgQueueTypeId = (BattlegroundQueueTypeId)((int) BATTLEGROUND_QUEUE_3v3_SOLO);
 
 

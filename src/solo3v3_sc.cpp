@@ -602,7 +602,7 @@ bool PlayerScript3v3Arena::NotSetArenaTeamInfoField(Player* player, uint8 slot, 
     if (slot == ArenaTeam::GetSlotByType(ARENA_TEAM_SOLO_3v3))
     {
         // sAZTH->GetAZTHPlayer(player)->setArena3v3Info(type, value);
-        return false;
+        return true;
     }
 
     return true;
