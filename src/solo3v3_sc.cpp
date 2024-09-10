@@ -229,7 +229,7 @@ bool NpcSolo3v3::ArenaCheckFullEquipAndTalents(Player* player)
 
 bool NpcSolo3v3::JoinQueueArena(Player* player, Creature* creature, bool isRated)
 {
-    if (!player || !creature)
+    if (!player/* || !creature*/) // need to remove crea for command .qsolo
         return false;
 
     if (sConfigMgr->GetOption<uint32>("Solo.3v3.MinLevel", 80) > player->GetLevel())

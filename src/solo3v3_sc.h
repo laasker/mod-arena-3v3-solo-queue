@@ -48,10 +48,10 @@ public:
     void Initialize();
     bool OnGossipHello(Player* player, Creature* creature) override;
     bool OnGossipSelect(Player* player, Creature* creature, uint32 /*sender*/, uint32 action) override;
-
-private:
     bool ArenaCheckFullEquipAndTalents(Player* player);
     bool JoinQueueArena(Player* player, Creature* creature, bool isRated);
+
+private:
     bool CreateArenateam(Player* player, Creature* creature);
     void fetchQueueList();
 
@@ -141,7 +141,156 @@ public:
     bool CanSaveToDB(ArenaTeam* team) override
     {
         if (team->GetId() >= MAX_ARENA_TEAM_ID)
+using namespace Acore::ChatCommands;
+
+class CommandJoinSolo : public CommandScript
+{
+public:
+    CommandJoinSolo() : CommandScript("CommandJoinSolo") { }
+
+    ChatCommandTable GetCommands() const override
+    {
+        static ChatCommandTable SoloCommandTable =
+        {
+            { "qsolo", HandleQueueSoloArena,           SEC_PLAYER, Console::No }, // command .qsolo
+            { "create soloteam", HandleCreateSoloTeam, SEC_PLAYER, Console::No }  // command .create soloteam (works)
+        };
+
+        return SoloCommandTable;
+    }
+
+    static bool HandleQueueSoloArena(ChatHandler* handler, const char* args)
+    {
+        Player* player = handler->GetSession()->GetPlayer();
+        if (!player)
             return false;
+
+        if (sConfigMgr->GetOption<bool>("Solo.3v3.Enable", true) == false)
+        {
+            ChatHandler(player->GetSession()).SendSysMessage("Solo 3v3 Arena is disabled.");
+            return true;
+        }
+        if (player->IsInCombat())
+        {
+            ChatHandler(player->GetSession()).SendSysMessage("Can't be in combat.");
+            return false;
+        }
+
+        NpcSolo3v3 SoloCommand;
+        if (player->HasAura(26013) && (sConfigMgr->GetOption<bool>("Solo.3v3.CastDeserterOnAfk", true) || sConfigMgr->GetOption<bool>("Solo.3v3.CastDeserterOnLeave", true)))
+        {
+            WorldPacket data;
+            sBattlegroundMgr->BuildGroupJoinedBattlegroundPacket(&data, ERR_GROUP_JOIN_BATTLEGROUND_DESERTERS);
+            player->GetSession()->SendPacket(&data);
+            return false;
+        }
+
+        // Use this when not testing
+        /*
+        if (!SoloCommand.ArenaCheckFullEquipAndTalents(player))
+        {
+            return false;
+        }
+        if (SoloCommand.JoinQueueArenaCommand(player, true))
+        {
+            handler->PSendSysMessage("You have joined the solo 3v3 arena queue.");
+        }
+        else 
+        {
+            //handler->PSendSysMessage("Join failed.");
+        }*/
+
+
+        // TESTING PURPOSES!
+        // Queues 3v3 Solo for all players (saving time)
+        for (auto& pair : ObjectAccessor::GetPlayers())
+        {
+            Player* currentPlayer = pair.second; // Access the Player* directly from the pair
+            if (currentPlayer)
+            {
+                if (!SoloCommand.ArenaCheckFullEquipAndTalents(currentPlayer))
+                {
+                    continue;
+                }
+                //bool NpcSolo3v3::JoinQueueArena(Player* player, Creature* creature, bool isRated)
+                if (SoloCommand.JoinQueueArena(currentPlayer, nullptr, true))
+                //if (SoloCommand.JoinQueueArenaCommand(currentPlayer, true))
+                {
+                    handler->PSendSysMessage("Player {} has joined the solo 3v3 arena queue.", currentPlayer->GetName().c_str());
+                }
+                else
+                {
+                    handler->PSendSysMessage("Failed to join queue for player {}.", currentPlayer->GetName().c_str());
+                }
+            }
+        }
+
+        return true;
+    }
+
+    static bool HandleCreateSoloTeam(ChatHandler* handler, const char* args)
+    {
+        Player* player = handler->GetSession()->GetPlayer();
+        if (!player)
+            return false;
+
+        /*
+        if (player->GetArenaTeamId(ArenaTeam::GetSlotByType(ARENA_TEAM_SOLO_3v3)))
+        {
+            handler->PSendSysMessage("You already have a solo 3v3 team.");
+            return false;
+        }*/
+        if (sConfigMgr->GetOption<uint32>("Solo.3v3.MinLevel", 80) <= player->GetLevel())
+        {
+            if (!player)
+                return false;
+
+            uint8 slot = ArenaTeam::GetSlotByType(ARENA_TEAM_SOLO_3v3);
+
+            // Check if player is already in an arena team
+            if (player->GetArenaTeamId(slot))
+            {
+                player->GetSession()->SendArenaTeamCommandResult(ERR_ARENA_TEAM_CREATE_S, player->GetName(), "", ERR_ALREADY_IN_ARENA_TEAM);
+                return false;
+            }
+
+            // if team name exist, we have to choose another name (playername + number)
+            int i = 1;
+            std::stringstream teamName;
+            teamName << player->GetName();
+
+            do
+            {
+                if (sArenaTeamMgr->GetArenaTeamByName(teamName.str()) != NULL) // teamname exist, so choose another name
+                {
+                    teamName.str(std::string());
+                    teamName << player->GetName() << i++;
+                }
+                else
+                    break;
+            } while (i < 100); // should never happen
+
+            // Create arena team
+            ArenaTeam* arenaTeam = new ArenaTeam();
+
+            if (!arenaTeam->Create(player->GetGUID(), uint8(ARENA_TEAM_SOLO_3v3 /*ARENA_TYPE_3v3_SOLO*/), teamName.str(), 4283124816, 45, 4294242303, 5, 4294705149))
+            {
+                delete arenaTeam;
+                return false;
+            }
+
+            // Register arena team
+            sArenaTeamMgr->AddArenaTeam(arenaTeam);
+
+            ChatHandler(player->GetSession()).SendSysMessage("Arena team successful created!");
+
+            return true;
+        }
+        else
+        {
+            ChatHandler(player->GetSession()).PSendSysMessage("You need level {}+ to create an arena team.", sConfigMgr->GetOption<uint32>("Solo.3v3.MinLevel", 80));
+            return false;
+        }
 
         return true;
     }
@@ -190,4 +339,5 @@ void AddSC_Solo_3v3_Arena()
     new ConfigLoader3v3Arena();
     new PlayerScript3v3Arena();
     new Arena_SC();
+    new CommandJoinSolo();
 }
