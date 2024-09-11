@@ -146,13 +146,41 @@ public:
 
     bool CanSaveToDB(ArenaTeam* team) override
     {
+        //if (team->GetId() >= MAX_ARENA_TEAM_ID)
+        //{
+        //    return false;
+        //}
+        //else
+        //{
+
+        //}
+
         if (team->GetId() >= MAX_ARENA_TEAM_ID)
         {
-            return false;
+
+            for (auto const& itr : team->GetMembers())
+            {
+                ArenaTeam* plrArenaTeam = nullptr;
+                // Find real arena team for player
+                for (auto const& itrMgr : sArenaTeamMgr->GetArenaTeams())
+                {
+                    if (itrMgr.first < MAX_ARENA_TEAM_ID && itrMgr.second->GetCaptain() == itr.Guid)// && itrMgr.second->GetType() == ARENA_TEAM_SOLO_3v3)
+                    {
+                        plrArenaTeam = itrMgr.second; // found!
+                        LOG_ERROR("solo3v3", "SaveSoloDB - Found team for player, Team ID: {}", plrArenaTeam->GetId());
+                        break;
+                    }
+                    else
+                    {
+                        //LOG_ERROR("solo3v3", "SaveSoloDB - Didnt find team for player GUID: {}", itr.Guid.ToString());
+                    }
+                }
+            }
+
         }
         else
         {
-
+            LOG_ERROR("solo3v3", "Solo3v3 CanSaveToDB found team ID: {}", team->GetId());
         }
 
         return true;
@@ -160,8 +188,6 @@ public:
 
     void OnArenaStart(Battleground* bg) override
     {
-        // if missing one player after ArenaStart, closes arena
-
         if (bg->GetArenaType() != ARENA_TYPE_3v3_SOLO)
             return;
 
@@ -192,21 +218,12 @@ public:
             someoneNotInArena = true;
         }
 
+        // if missing one player after ArenaStart and StopGameIncomplete config is true, closes arena
         if (someoneNotInArena && sConfigMgr->GetOption<bool>("Solo.3v3.StopGameIncomplete", true))
         {
             bg->SetRated(false);
             bg->EndBattleground(TEAM_NEUTRAL);
         }
-
-        /*
-        if (plr->GetInstanceId() != bg->GetInstanceID())
-        {
-            if (sConfigMgr->GetOption<bool>("Solo.3v3.CastDeserterOnAfk", true))
-                plr->CastSpell(plr, 26013, true); // Deserter
-
-            someoneNotInArena = true;
-        }
-        */
     }
 };
 

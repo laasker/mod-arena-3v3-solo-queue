@@ -573,6 +573,10 @@ void Solo3v3BG::OnBattlegroundEndReward(Battleground* bg, Player* player, TeamId
         }
 
         plrArenaTeam->SaveToDB(true);
+
+        // kick player -- saving time
+        player->LeaveBattleground();
+
     }
 }
 
@@ -606,7 +610,7 @@ void Solo3v3BG::OnArenaRemovePlayerAtLeave(Battleground* bg, Player* player)
     }
     else
     {
-        //LOG_ERROR("bg.arena", "OnArenaLeave called with status: {}", bg->GetStatus());
+        LOG_ERROR("bg.arena", "OnArenaLeave called with status: {}", bg->GetStatus());
     }
 
     /*
@@ -638,7 +642,7 @@ void PlayerScript3v3Arena::OnBattlegroundDesertion(Player* player, const Battleg
                 }
                 else
                 {
-                    LOG_ERROR("bg.arena", "OnBattlegroundDesertion BG_DESERTION_TYPE_LEAVE_BG - Status: {} | GetArenaType: {}", bg->GetStatus(), bg->GetArenaType());
+                    //LOG_ERROR("bg.arena", "OnBattlegroundDesertion BG_DESERTION_TYPE_LEAVE_BG - Status: {} | GetArenaType: {}", bg->GetStatus(), bg->GetArenaType());
                 }
             }
             else
