@@ -168,47 +168,34 @@ void Solo3v3::CleanUp3v3SoloQ(Battleground* bg)
 
 void Solo3v3::CheckStartSolo3v3Arena(Battleground* bg)
 {
-    // Fix crash with Arena Replay module
-    for (const auto& playerPair : bg->GetPlayers())
-    {
-        Player* player = playerPair.second;
-        if (player->IsSpectator())
-            return;
-    }
-
     if (bg->GetArenaType() != ARENA_TYPE_3v3_SOLO)
         return;
 
-    if (bg->GetStatus() != STATUS_IN_PROGRESS)
-        return; // if CheckArenaWinConditions ends the game
-
     bool someoneNotInArena = false;
+    int PlayersInArena = 0;
 
-    ArenaTeam* team[2];
-    team[0] = sArenaTeamMgr->GetArenaTeamById(bg->GetArenaTeamIdForTeam(TEAM_ALLIANCE));
-    team[1] = sArenaTeamMgr->GetArenaTeamById(bg->GetArenaTeamIdForTeam(TEAM_HORDE));
+    uint32 bgInstanceId = bg->GetInstanceID();
+    LOG_ERROR("bg.arena", "Current Battleground instance ID: {}", bgInstanceId);
 
-    ASSERT(team[0] && team[1]);
-
-    for (int i = 0; i < 2; i++)
+    for (const auto& playerPair : bg->GetPlayers())
     {
-        for (auto const& itr : team[i]->GetMembers())
+        // Fix crash with Arena Replay module
+        Player* player = playerPair.second;
+        if (player->IsSpectator())
+            return;
+
+        if (!player)
         {
-            Player* plr = ObjectAccessor::FindPlayer(itr.Guid);
-            if (!plr)
-            {
-                someoneNotInArena = true;
-                continue;
-            }
-
-            if (plr->GetInstanceId() != bg->GetInstanceID())
-            {
-                if (sConfigMgr->GetOption<bool>("Solo.3v3.CastDeserterOnAfk", true))
-                    plr->CastSpell(plr, 26013, true); // Deserter
-
-                someoneNotInArena = true;
-            }
+            someoneNotInArena = true;
+            continue;
         }
+
+        PlayersInArena++;
+    }
+
+    if (PlayersInArena < 6)
+    {
+        someoneNotInArena = true;
     }
 
     if (someoneNotInArena && sConfigMgr->GetOption<bool>("Solo.3v3.StopGameIncomplete", true))
@@ -345,7 +332,7 @@ bool Solo3v3::Arena3v3CheckTalents(Player* player)
     if (!player)
         return false;
 
-    if (sConfigMgr->GetOption<bool>("Arena.3v3.BlockForbiddenTalents", false) == false)
+    if (sConfigMgr->GetOption<bool>("Arena.3v3.BlockForbiddenTalents", false))
         return true;
 
     uint32 count = 0;
