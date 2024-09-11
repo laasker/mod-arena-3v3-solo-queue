@@ -314,7 +314,7 @@ bool NpcSolo3v3::JoinQueueArena(Player* player, Creature* creature, bool isRated
 
 bool NpcSolo3v3::CreateArenateam(Player* player, Creature* creature)
 {
-    if (!player || !creature)
+    if (!player/* || !creature*/)
         return false;
 
     // Check if player is already in an arena team
