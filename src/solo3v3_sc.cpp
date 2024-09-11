@@ -71,12 +71,19 @@ bool NpcSolo3v3::OnGossipHello(Player* player, Creature* creature)
             AddGossipItemFor(player, GOSSIP_ICON_CHAT, "|TInterface/ICONS/Achievement_Arena_2v2_7:30|t Disband Arena team", GOSSIP_SENDER_MAIN, NPC_3v3_ACTION_DISBAND_ARENATEAM, "Are you sure?", 0, false);
         }
 
-        AddGossipItemFor(player, GOSSIP_ICON_CHAT, "|TInterface/ICONS/INV_Misc_Coin_01:30|t Show statistics", GOSSIP_SENDER_MAIN, NPC_3v3_ACTION_GET_STATISTICS);
+        //AddGossipItemFor(player, GOSSIP_ICON_CHAT, "|TInterface/ICONS/INV_Misc_Coin_01:23|t Show statistics", GOSSIP_SENDER_MAIN, NPC_3v3_ACTION_GET_STATISTICS);
     }
 
-    AddGossipItemFor(player, GOSSIP_ICON_CHAT, "|TInterface/ICONS/INV_Misc_Coin_03:30|t How to Use NPC?", GOSSIP_SENDER_MAIN, NPC_3v3_ACTION_SCRIPT_INFO);
+    //AddGossipItemFor(player, GOSSIP_ICON_CHAT, "|TInterface/ICONS/INV_Misc_Coin_03:23|t How to Use NPC?", GOSSIP_SENDER_MAIN, NPC_3v3_ACTION_SCRIPT_INFO);
 
-    SendGossipMenuFor(player, 60015, creature->GetGUID());
+    if (sConfigMgr->GetOption<bool>("Solo.3v3.FilterTalents", false))
+    {
+        SendGossipMenuFor(player, 1000003, creature->GetGUID());
+    }
+    else
+    {
+        SendGossipMenuFor(player, 1000004, creature->GetGUID());
+    }
 
     return true;
 }
@@ -240,8 +247,11 @@ bool NpcSolo3v3::JoinQueueArena(Player* player, Creature* creature, bool isRated
     uint32 arenaRating = 0;
     uint32 matchmakerRating = 0;
 
-    // ignore if we already in BG or BG queue
-    if (player->InBattleground())
+    // ignore if we already in BG or Arena queue
+    if (player->InBattleground() || player->InBattlegroundQueueForBattlegroundQueueType((BattlegroundQueueTypeId)BATTLEGROUND_QUEUE_2v2) ||
+        player->InBattlegroundQueueForBattlegroundQueueType((BattlegroundQueueTypeId)BATTLEGROUND_QUEUE_3v3) ||
+        player->InBattlegroundQueueForBattlegroundQueueType((BattlegroundQueueTypeId)BATTLEGROUND_QUEUE_5v5) ||
+        player->InBattlegroundQueueForBattlegroundQueueType((BattlegroundQueueTypeId)BATTLEGROUND_QUEUE_3v3_SOLO))
         return false;
 
     //check existance
