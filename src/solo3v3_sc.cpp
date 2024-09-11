@@ -492,14 +492,6 @@ bool Solo3v3BG::OnQueueUpdateValidity(BattlegroundQueue* /* queue */, uint32 /*d
     return true;
 }
 
-void Solo3v3BG::OnBattlegroundUpdate(Battleground* bg, uint32 /*diff*/)
-{
-    if (bg->GetStatus() != STATUS_IN_PROGRESS || !bg->isArena())
-        return;
-
-    sSolo->CheckStartSolo3v3Arena(bg);
-}
-
 void Solo3v3BG::OnBattlegroundDestroy(Battleground* bg)
 {
     sSolo->CleanUp3v3SoloQ(bg);
@@ -578,6 +570,153 @@ void Solo3v3BG::OnBattlegroundEndReward(Battleground* bg, Player* player, TeamId
                 break;
             }
 
+        }
+
+        plrArenaTeam->SaveToDB(true);
+    }
+}
+
+void SaveSoloTeam(Battleground* bg, Player* player, TeamId winnerTeamId)
+{
+
+}
+
+// new hook, seems to be called 2 times for some reason (i copied OnBattlegroundRemovePlayerAtLeave, and it is called 2 times too after leaving)
+void Solo3v3BG::OnArenaRemovePlayerAtLeave(Battleground* bg, Player* player)
+{
+    if (bg->GetArenaType() != ARENA_TYPE_3v3_SOLO)
+        return;
+
+    //TeamId bgTeamId = player->GetBgTeamId();
+
+    if (bg->GetStatus() == STATUS_WAIT_JOIN) // chamado quando desloga (aplica deserter) e quando quita (na arena)
+    {
+        LOG_ERROR("bg.arena", "OnArenaLeave called when STATUS_WAIT_JOIN");
+
+        if (sConfigMgr->GetOption<bool>("Solo.3v3.CastDeserterOnAfk", true))
+            player->CastSpell(player, 26013, true); // Deserter
+
+        //return SaveSoloTeamOnLeave(bg, player);
+    }
+    if (bg->GetStatus() == STATUS_IN_PROGRESS)
+    {
+        LOG_ERROR("bg.arena", "OnArenaLeave called when STATUS_IN_PROGRESS");
+
+        //return SaveSoloTeamOnLeave(bg, player);
+    }
+    else
+    {
+        //LOG_ERROR("bg.arena", "OnArenaLeave called with status: {}", bg->GetStatus());
+    }
+
+    /*
+    STATUS_NONE                     = 0,                     // first status, should mean bg is not instance
+    STATUS_WAIT_QUEUE               = 1,                     // means bg is empty and waiting for queue
+    STATUS_WAIT_JOIN                = 2,                     // this means, that BG has already started and it is waiting for more players
+    STATUS_IN_PROGRESS              = 3,                     // means bg is running
+    STATUS_WAIT_LEAVE               = 4
+    */
+}
+
+void PlayerScript3v3Arena::OnBattlegroundDesertion(Player* player, const BattlegroundDesertionType type)
+{
+    Battleground* bg = ((BattlegroundMap*)player->FindMap())->GetBG();
+
+    switch (type)
+    {
+        case BG_DESERTION_TYPE_LEAVE_BG:
+
+            if (bg->isArena() && bg->GetArenaType() == ARENA_TYPE_3v3_SOLO)
+            {
+                if (bg->GetStatus() == STATUS_WAIT_JOIN) // chamado quando desloga e quando quita (na arena)
+                {
+                    LOG_ERROR("bg.arena", "OnBattlegroundDesertion called BG_DESERTION_TYPE_LEAVE_BG (arena solo + STATUS_WAIT_JOIN)");
+                }
+                else if (bg->GetStatus() == STATUS_IN_PROGRESS)
+                {
+                    LOG_ERROR("bg.arena", "OnBattlegroundDesertion called BG_DESERTION_TYPE_LEAVE_BG (arena solo + STATUS_IN_PROGRESS)");
+                }
+                else
+                {
+                    LOG_ERROR("bg.arena", "OnBattlegroundDesertion BG_DESERTION_TYPE_LEAVE_BG - Status: {} | GetArenaType: {}", bg->GetStatus(), bg->GetArenaType());
+                }
+            }
+            else
+            {
+                //LOG_ERROR("bg.arena", "OnBattlegroundDesertion - BG_DESERTION_TYPE_LEAVE_BG - Status: {} | GetArenaType: {}", bg->GetStatus(), bg->GetArenaType());
+            }
+            break;
+
+        // need to create a new hook for that, since it doesn't have the BG type (server crashes if i try)
+        case BG_DESERTION_TYPE_NO_ENTER_BUTTON:
+
+            LOG_ERROR("bg.arena", "OnBattlegroundDesertion called BG_DESERTION_TYPE_NO_ENTER_BUTTON solo 3v3 & STATUS_WAIT_JOIN");
+            break;
+
+        default:
+            break;
+    }
+}
+
+// still wip
+void Solo3v3BG::SaveSoloTeamOnLeave(Battleground* bg, Player* player)
+{
+    if (bg->isRated() && bg->GetArenaType() == ARENA_TYPE_3v3_SOLO)
+    {
+        LOG_ERROR("solo3v3", "Test SaveSoloTeamOnLeave");
+
+        ArenaTeam* plrArenaTeam = sArenaTeamMgr->GetArenaTeamByCaptain(player->GetGUID(), ARENA_TEAM_SOLO_3v3);
+
+        if (!plrArenaTeam)
+            return;
+
+        ArenaTeamStats atStats = plrArenaTeam->GetStats();
+        int32 ratingModifier;
+        int32 oldTeamRating;
+
+        TeamId bgTeamId = player->GetBgTeamId();
+        TeamId opponentTeamId = bg->GetOtherTeamId(bgTeamId);
+
+        ArenaTeam* loserArenaTeam = sArenaTeamMgr->GetArenaTeamById(bg->GetArenaTeamIdForTeam(opponentTeamId == TEAM_NEUTRAL ? TEAM_ALLIANCE : opponentTeamId));
+        oldTeamRating = bgTeamId == TEAM_HORDE ? oldTeamRatingHorde : oldTeamRatingAlliance;
+        ratingModifier = int32(loserArenaTeam->GetRating()) - oldTeamRating;
+
+        // Reduce rating and MMR
+        if (int32(atStats.Rating) - ratingModifier < 0)
+            atStats.Rating = 0;
+        else
+            atStats.Rating -= ratingModifier;
+
+        atStats.SeasonGames += 1;
+        atStats.WeekGames += 1;
+
+        // Update team's rank
+        atStats.Rank = 1;
+        ArenaTeamMgr::ArenaTeamContainer::const_iterator i = sArenaTeamMgr->GetArenaTeamMapBegin();
+        for (; i != sArenaTeamMgr->GetArenaTeamMapEnd(); ++i) {
+            if (i->second->GetType() == ARENA_TEAM_SOLO_3v3 && i->second->GetStats().Rating > atStats.Rating)
+                ++atStats.Rank;
+        }
+
+        plrArenaTeam->SetArenaTeamStats(atStats);
+        plrArenaTeam->NotifyStatsChanged();
+
+        for (ArenaTeam::MemberList::iterator itr = plrArenaTeam->GetMembers().begin(); itr != plrArenaTeam->GetMembers().end(); ++itr)
+        {
+            if (itr->Guid == player->GetGUID())
+            {
+                itr->PersonalRating = atStats.Rating;
+                itr->WeekGames = atStats.WeekGames;
+                itr->SeasonGames = atStats.SeasonGames;
+
+                // Reduce MMR
+                if (int32(itr->MatchMakerRating) - ratingModifier < 0)
+                    itr->MatchMakerRating = 0;
+                else
+                    itr->MatchMakerRating -= ratingModifier;
+
+                break;
+            }
         }
 
         plrArenaTeam->SaveToDB(true);
