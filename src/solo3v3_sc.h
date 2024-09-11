@@ -141,6 +141,17 @@ public:
     bool CanSaveToDB(ArenaTeam* team) override
     {
         if (team->GetId() >= MAX_ARENA_TEAM_ID)
+        {
+            return false;
+        }
+        else
+        {
+
+        }
+
+        return true;
+    }
+};
 using namespace Acore::ChatCommands;
 
 class CommandJoinSolo : public CommandScript

@@ -52,28 +52,22 @@ bool NpcSolo3v3::OnGossipHello(Player* player, Creature* creature)
     AddGossipItemFor(player, GOSSIP_ICON_CHAT, infoQueue.str().c_str(), GOSSIP_SENDER_MAIN, 0);
 
     if (player->InBattlegroundQueueForBattlegroundQueueType((BattlegroundQueueTypeId)BATTLEGROUND_QUEUE_3v3_SOLO))
-        AddGossipItemFor(player, GOSSIP_ICON_INTERACT_1, "|TInterface/ICONS/Achievement_Arena_2v2_7:30|t Leave Solo queue", GOSSIP_SENDER_MAIN, NPC_3v3_ACTION_LEAVE_QUEUE, "Are you sure you want to remove the solo queue?", 0, false);
+        AddGossipItemFor(player, GOSSIP_ICON_BATTLE, " |TInterface/ICONS/Achievement_Arena_2v2_7:30|t Leave Solo queue", GOSSIP_SENDER_MAIN, NPC_3v3_ACTION_LEAVE_QUEUE, "Are you sure you want to remove the solo queue?", 0, false);
 
     if (!player->GetArenaTeamId(ArenaTeam::GetSlotByType(ARENA_TYPE_3v3_SOLO)))
     {
-        uint32 cost = sConfigMgr->GetOption<uint32>("Solo.3v3.Cost", 1);
-        if (player->IsPvP())
-            cost = 0;
-
-        AddGossipItemFor(player, GOSSIP_ICON_INTERACT_1, "|TInterface/ICONS/Achievement_Arena_2v2_7:30|t  Create new Solo arena team", GOSSIP_SENDER_MAIN, NPC_3v3_ACTION_CREATE_ARENA_TEAM, "Create new solo arena team?", cost, false);
+        AddGossipItemFor(player, GOSSIP_ICON_TABARD, " |TInterface/ICONS/Achievement_Arena_2v2_7:30|t  Create new Solo arena team", GOSSIP_SENDER_MAIN, NPC_3v3_ACTION_CREATE_ARENA_TEAM, "Create new solo arena team?", 0, false);
     }
     else
     {
         if (!player->InBattlegroundQueueForBattlegroundQueueType((BattlegroundQueueTypeId)BATTLEGROUND_QUEUE_3v3_SOLO))
         {
             //AddGossipItemFor(player,GOSSIP_ICON_INTERACT_1, "Queue up for 1vs1 Wargame\n", GOSSIP_SENDER_MAIN, 20);
-            AddGossipItemFor(player, GOSSIP_ICON_INTERACT_1, "|TInterface/ICONS/Achievement_Arena_3v3_5:30|t Queue up for 3vs3 Arena Solo\n", GOSSIP_SENDER_MAIN, NPC_3v3_ACTION_JOIN_QUEUE_ARENA_RATED);
-            AddGossipItemFor(player, GOSSIP_ICON_CHAT, "|TInterface/ICONS/Achievement_Arena_2v2_7:30|t Disband Arena team", GOSSIP_SENDER_MAIN, NPC_3v3_ACTION_DISBAND_ARENATEAM, "Are you sure?", 0, false);
+            AddGossipItemFor(player, GOSSIP_ICON_BATTLE, " |TInterface/ICONS/Achievement_Arena_3v3_5:30:30:0:-12|t Queue up for 3vs3 Arena Solo\n", GOSSIP_SENDER_MAIN, NPC_3v3_ACTION_JOIN_QUEUE_ARENA_RATED);
+            AddGossipItemFor(player, GOSSIP_ICON_TABARD, " |TInterface/ICONS/Achievement_Arena_2v2_7:26|t Disband Arena team", GOSSIP_SENDER_MAIN, NPC_3v3_ACTION_DISBAND_ARENATEAM, "Are you sure?", 0, false);
         }
-
-        //AddGossipItemFor(player, GOSSIP_ICON_CHAT, "|TInterface/ICONS/INV_Misc_Coin_01:23|t Show statistics", GOSSIP_SENDER_MAIN, NPC_3v3_ACTION_GET_STATISTICS);
+        //AddGossipItemFor(player, GOSSIP_ICON_TRAINER, "|TInterface/ICONS/INV_Misc_Coin_01:23|t Show statistics", GOSSIP_SENDER_MAIN, NPC_3v3_ACTION_GET_STATISTICS);
     }
-
     //AddGossipItemFor(player, GOSSIP_ICON_CHAT, "|TInterface/ICONS/INV_Misc_Coin_03:23|t How to Use NPC?", GOSSIP_SENDER_MAIN, NPC_3v3_ACTION_SCRIPT_INFO);
 
     if (sConfigMgr->GetOption<bool>("Solo.3v3.FilterTalents", false))
