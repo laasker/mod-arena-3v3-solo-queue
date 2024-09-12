@@ -54,7 +54,7 @@ bool NpcSolo3v3::OnGossipHello(Player* player, Creature* creature)
     if (player->InBattlegroundQueueForBattlegroundQueueType((BattlegroundQueueTypeId)BATTLEGROUND_QUEUE_3v3_SOLO))
         AddGossipItemFor(player, GOSSIP_ICON_BATTLE, " |TInterface/ICONS/Achievement_Arena_2v2_7:30|t Leave Solo queue", GOSSIP_SENDER_MAIN, NPC_3v3_ACTION_LEAVE_QUEUE, "Are you sure you want to remove the solo queue?", 0, false);
 
-    if (!player->GetArenaTeamId(ArenaTeam::GetSlotByType(ARENA_TYPE_3v3_SOLO)))
+    if (!player->GetArenaTeamId(ArenaTeam::GetSlotByType(ARENA_TEAM_SOLO_3v3)))
     {
         AddGossipItemFor(player, GOSSIP_ICON_TABARD, " |TInterface/ICONS/Achievement_Arena_2v2_7:30|t  Create new Solo arena team", GOSSIP_SENDER_MAIN, NPC_3v3_ACTION_CREATE_ARENA_TEAM, "Create new solo arena team?", 0, false);
     }
@@ -322,7 +322,7 @@ bool NpcSolo3v3::CreateArenateam(Player* player, Creature* creature)
         return false;
 
     // Check if player is already in an arena team
-    if (player->GetArenaTeamId(ArenaTeam::GetSlotByType(ARENA_TYPE_3v3_SOLO)))
+    if (player->GetArenaTeamId(ArenaTeam::GetSlotByType(ARENA_TEAM_SOLO_3v3)))
     {
         player->GetSession()->SendArenaTeamCommandResult(ERR_ARENA_TEAM_CREATE_S, player->GetName(), "", ERR_ALREADY_IN_ARENA_TEAM);
         return false;
@@ -349,7 +349,7 @@ bool NpcSolo3v3::CreateArenateam(Player* player, Creature* creature)
     // Create arena team
     ArenaTeam* arenaTeam = new ArenaTeam();
 
-    if (!arenaTeam->Create(player->GetGUID(), uint8(ARENA_TYPE_3v3_SOLO), teamName.str(), 4283124816, 45, 4294242303, 5, 4294705149))
+    if (!arenaTeam->Create(player->GetGUID(), uint8(ARENA_TEAM_SOLO_3v3), teamName.str(), 4283124816, 45, 4294242303, 5, 4294705149))
     {
         delete arenaTeam;
         return false;
@@ -501,6 +501,36 @@ void Solo3v3BG::OnBattlegroundEndReward(Battleground* bg, Player* player, TeamId
 {
     if (bg->isRated() && bg->GetArenaType() == ARENA_TYPE_3v3_SOLO)
     {
+        // pegar id do time do jogador e perdedor, dar iterate no mebers(getmembers)
+        // pegar plarenateam dos members
+
+        ArenaTeam* team[2];
+        team[0] = sArenaTeamMgr->GetArenaTeamById(bg->GetArenaTeamIdForTeam(TEAM_ALLIANCE));
+        team[1] = sArenaTeamMgr->GetArenaTeamById(bg->GetArenaTeamIdForTeam(TEAM_HORDE));
+        ASSERT(team[0] && team[1]);
+
+        LOG_ERROR("solo3v3", "Time Alliance: {} | Time Horda: {}", team[0]->GetId(), team[1]->GetId());
+
+        for (int i = 0; i < 2; i++)
+        {
+            for (auto const& itr : team[i]->GetMembers())
+            {
+                Player* plr = ObjectAccessor::FindPlayer(itr.Guid);
+                if (!plr)
+                {
+                    //LOG_ERROR("solo3v3", "Jogador nao encontrado");
+                    continue;
+                }
+                else
+                {
+                    LOG_ERROR("solo3v3", "Jogador encontrado: GUID {}", itr.Guid.ToString());
+                }
+
+            }
+        }
+        //
+        // to do: get players guid id on ArenaStart, then put these guids in instead of player, in GetArenaTeamByCaptain(player->GetGUID()
+
         ArenaTeam* plrArenaTeam = sArenaTeamMgr->GetArenaTeamByCaptain(player->GetGUID(), ARENA_TYPE_3v3_SOLO);
 
         if (!plrArenaTeam)
@@ -517,12 +547,16 @@ void Solo3v3BG::OnBattlegroundEndReward(Battleground* bg, Player* player, TeamId
             oldTeamRating = winnerTeamId == TEAM_HORDE ? oldTeamRatingHorde : oldTeamRatingAlliance;
             ratingModifier = int32(winnerArenaTeam->GetRating()) - oldTeamRating;
 
+            //LOG_ERROR("solo3v3", "Time vencedor ID: {}", winnerArenaTeam->GetId());
+
             atStats.SeasonWins += 1;
             atStats.WeekWins += 1;
         } else {
             ArenaTeam* loserArenaTeam  = sArenaTeamMgr->GetArenaTeamById(bg->GetArenaTeamIdForTeam(winnerTeamId == TEAM_NEUTRAL ? TEAM_ALLIANCE : bg->GetOtherTeamId(winnerTeamId)));
             oldTeamRating = winnerTeamId != TEAM_HORDE ? oldTeamRatingHorde : oldTeamRatingAlliance;
             ratingModifier = int32(loserArenaTeam->GetRating()) - oldTeamRating;
+
+            //LOG_ERROR("solo3v3", "Time perdedor ID: {}", loserArenaTeam->GetId());
         }
 
         if (int32(atStats.Rating) + ratingModifier < 0)
@@ -574,11 +608,26 @@ void Solo3v3BG::OnBattlegroundEndReward(Battleground* bg, Player* player, TeamId
 
         plrArenaTeam->SaveToDB(true);
 
-        // kick player -- saving time
-        player->LeaveBattleground();
 
+        // kick player -- saving alt tab time for testing
+        player->LeaveBattleground();
     }
 }
+
+/*
+* // to do:
+* 
+* 1. Saving loss/win:
+* on arenastart(talvez mudar p BGStart, q usa o msm BGScript, e nao arenaScript), pegar guid dos players,
+e on bgEndEnd, salva esses times. E OnArenaRemovePlayerAtLeave se alguem saiu em progress, da loss pra ele
+
+ou fixar o problema em arena.cpp (overwride nos teams com soloteam ao salvar)
+*
+* 2. Deserter on Logout(qnd chama a arena, da pra deslogar e sair da fila e n tomar deserter):
+* sobre deserter: on bg create, pega id dos players dos times, se em BGStart n tiver algum deles, da deserter+loss(se n arrumar o loss)? - talvez da pra manter esses ids e usar p salvar no onbgEnd
+*
+* ou modificar o tempsoloteam pra salvar guids tbm, ai on bgstart usa o codigo antigo do StopGameIncomplete
+*/
 
 void SaveSoloTeam(Battleground* bg, Player* player, TeamId winnerTeamId)
 {
@@ -590,8 +639,6 @@ void Solo3v3BG::OnArenaRemovePlayerAtLeave(Battleground* bg, Player* player)
 {
     if (bg->GetArenaType() != ARENA_TYPE_3v3_SOLO)
         return;
-
-    //TeamId bgTeamId = player->GetBgTeamId();
 
     if (bg->GetStatus() == STATUS_WAIT_JOIN) // chamado quando desloga (aplica deserter) e quando quita (na arena)
     {
@@ -608,54 +655,54 @@ void Solo3v3BG::OnArenaRemovePlayerAtLeave(Battleground* bg, Player* player)
 
         //return SaveSoloTeamOnLeave(bg, player);
     }
-    else
-    {
-        LOG_ERROR("bg.arena", "OnArenaLeave called with status: {}", bg->GetStatus());
-    }
-
-    /*
-    STATUS_NONE                     = 0,                     // first status, should mean bg is not instance
-    STATUS_WAIT_QUEUE               = 1,                     // means bg is empty and waiting for queue
-    STATUS_WAIT_JOIN                = 2,                     // this means, that BG has already started and it is waiting for more players
-    STATUS_IN_PROGRESS              = 3,                     // means bg is running
-    STATUS_WAIT_LEAVE               = 4
-    */
 }
 
+// to do: criar um hook igual, so que pra arena (talvez com a opção de salvar na db os deserters)
 void PlayerScript3v3Arena::OnBattlegroundDesertion(Player* player, const BattlegroundDesertionType type)
 {
-    Battleground* bg = ((BattlegroundMap*)player->FindMap())->GetBG();
-
     switch (type)
     {
-        case BG_DESERTION_TYPE_LEAVE_BG:
-
-            if (bg->isArena() && bg->GetArenaType() == ARENA_TYPE_3v3_SOLO)
-            {
-                if (bg->GetStatus() == STATUS_WAIT_JOIN) // chamado quando desloga e quando quita (na arena)
-                {
-                    LOG_ERROR("bg.arena", "OnBattlegroundDesertion called BG_DESERTION_TYPE_LEAVE_BG (arena solo + STATUS_WAIT_JOIN)");
-                }
-                else if (bg->GetStatus() == STATUS_IN_PROGRESS)
-                {
-                    LOG_ERROR("bg.arena", "OnBattlegroundDesertion called BG_DESERTION_TYPE_LEAVE_BG (arena solo + STATUS_IN_PROGRESS)");
-                }
-                else
-                {
-                    //LOG_ERROR("bg.arena", "OnBattlegroundDesertion BG_DESERTION_TYPE_LEAVE_BG - Status: {} | GetArenaType: {}", bg->GetStatus(), bg->GetArenaType());
-                }
-            }
-            else
-            {
-                //LOG_ERROR("bg.arena", "OnBattlegroundDesertion - BG_DESERTION_TYPE_LEAVE_BG - Status: {} | GetArenaType: {}", bg->GetStatus(), bg->GetArenaType());
-            }
-            break;
-
-        // need to create a new hook for that, since it doesn't have the BG type (server crashes if i try)
         case BG_DESERTION_TYPE_NO_ENTER_BUTTON:
 
-            LOG_ERROR("bg.arena", "OnBattlegroundDesertion called BG_DESERTION_TYPE_NO_ENTER_BUTTON solo 3v3 & STATUS_WAIT_JOIN");
+            if (player->InBattlegroundQueueForBattlegroundQueueType((BattlegroundQueueTypeId)BATTLEGROUND_QUEUE_3v3_SOLO))
+            {
+                if (sConfigMgr->GetOption<bool>("Solo.3v3.CastDeserterOnAfk", true))
+                    player->CastSpell(player, 26013, true); // Deserter
+        
+                LOG_ERROR("bg.arena", "BG_DESERTION_TYPE_NO_ENTER_BUTTON - in 3v3solo queue");
+            }
             break;
+
+        // to do: mudar p arena (so ta procando com fila de bg)
+        case BG_DESERTION_TYPE_LEAVE_QUEUE: // called when using macro to leave queue when it pops (/run AcceptBattlefieldPort(1, 0);)
+
+            LOG_ERROR("bg.arena", "called BG_DESERTION_TYPE_LEAVE_QUEUE");
+            if (player->InBattlegroundQueueForBattlegroundQueueType((BattlegroundQueueTypeId)BATTLEGROUND_QUEUE_3v3_SOLO))
+            {
+                if (sConfigMgr->GetOption<bool>("Solo.3v3.CastDeserterOnAfk", true))
+                    player->CastSpell(player, 26013, true); // Deserter
+
+                LOG_ERROR("bg.arena", "called BG_DESERTION_TYPE_NO_ENTER_BUTTON - in 3v3solo queue");
+            }
+            break;
+
+        // need to fix this, players can spam queue and logout while the queue pops, making the match cancel when arenaStarts (need to apply deserter, tried onbeforelogout and didnt work too)
+        case BG_DESERTION_TYPE_INVITE_LOGOUT: // for some reason never gets called, from either BG or Arena. Need to apply Deserter on Logouts (+ count as loss)
+
+            LOG_ERROR("bg.arena", "called BG_DESERTION_TYPE_INVITE_LOGOUT");
+            if (player->InBattlegroundQueueForBattlegroundQueueType((BattlegroundQueueTypeId)BATTLEGROUND_QUEUE_3v3_SOLO))
+            {
+                if (sConfigMgr->GetOption<bool>("Solo.3v3.CastDeserterOnAfk", true))
+                    player->CastSpell(player, 26013, true); // Deserter
+
+                LOG_ERROR("bg.arena", "called BG_DESERTION_TYPE_NO_ENTER_BUTTON - in 3v3solo queue");
+            }
+
+            break;
+
+
+
+        // case BG_DESERTION_TYPE_OFFLINE: // doesn't seem to be called anywhere, plus 'OnArenaRemovePlayerAtLeave' is already called on logout
 
         default:
             break;
@@ -778,6 +825,8 @@ void PlayerScript3v3Arena::OnLogin(Player* pPlayer)
 
 void PlayerScript3v3Arena::OnGetArenaPersonalRating(Player* player, uint8 slot, uint32& rating)
 {
+    LOG_ERROR("solo3v3", "OnGetArenaPersonalRating chamado");
+
     if (slot == ARENA_SLOT_SOLO_3v3)
     {
         if (ArenaTeam* at = sArenaTeamMgr->GetArenaTeamByCaptain(player->GetGUID(), ARENA_TYPE_3v3_SOLO))
@@ -785,6 +834,50 @@ void PlayerScript3v3Arena::OnGetArenaPersonalRating(Player* player, uint8 slot, 
             rating = at->GetRating();
         }
     }
+}
+
+void PlayerScript3v3Arena::GetCustomGetArenaTeamId(Player const* player, uint8 slot, uint32& teamID) const
+{
+    if (!player)
+    {
+        LOG_ERROR("solo3v3", "GetCustomGetArenaTeamId n achou player");
+        return;
+    }
+
+    LOG_ERROR("solo3v3", "GetCustomGetArenaTeamId chamado");
+
+    if (slot == ARENA_SLOT_SOLO_3v3)
+    {
+        LOG_ERROR("solo3v3", "GetCustomGetArenaTeamId chamado slot solo");
+        //if (ArenaTeam* at = sArenaTeamMgr->GetArenaTeamByCaptain(player->GetGUID(), ARENA_TYPE_3v3_SOLO))
+        //{
+        //    //rating = at->GetRating();
+        //}
+    }
+}
+
+void PlayerScript3v3Arena::OnGetArenaTeamId(Player* player, uint8 slot, uint32& result)
+{
+    if (!player)
+        return;
+
+    LOG_ERROR("solo3v3", "OnGetArenaTeamId chamado");
+
+    // [AZTH] use static method of ArenaTeam to retrieve the slot
+    // if (slot == ArenaTeam::GetSlotByType(ARENA_TEAM_1v1))
+    //     result = player->GetArenaTeamIdFromDB(player->GetGUID(), ARENA_TEAM_1v1);
+
+    if (slot == ArenaTeam::GetSlotByType(ARENA_TYPE_3v3_SOLO))
+    {
+        LOG_ERROR("solo3v3", "OnGetArenaTeamId chamado 3v3solo type");
+        result = player->GetArenaTeamIdFromDB(player->GetGUID(), ARENA_TYPE_3v3_SOLO);
+    }
+
+    if (slot == ArenaTeam::GetSlotByType(ARENA_TEAM_SOLO_3v3))
+    {
+        LOG_ERROR("solo3v3", "OnGetArenaTeamId chamado 3v3solo team");
+    }
+    //    result = player->GetArenaTeamIdFromDB(player->GetGUID(), ARENA_TEAM_SOLO_3v3);
 }
 
 void PlayerScript3v3Arena::OnGetMaxPersonalArenaRatingRequirement(const Player* player, uint32 minslot, uint32& maxArenaRating) const
@@ -803,19 +896,6 @@ void PlayerScript3v3Arena::OnGetMaxPersonalArenaRatingRequirement(const Player* 
     }
 }
 
-void PlayerScript3v3Arena::OnGetArenaTeamId(Player* player, uint8 slot, uint32& result)
-{
-    if (!player)
-        return;
-
-    // [AZTH] use static method of ArenaTeam to retrieve the slot
-    // if (slot == ArenaTeam::GetSlotByType(ARENA_TEAM_1v1))
-    //     result = player->GetArenaTeamIdFromDB(player->GetGUID(), ARENA_TEAM_1v1);
-
-    if (slot == ArenaTeam::GetSlotByType(ARENA_TYPE_3v3_SOLO))
-        result = player->GetArenaTeamIdFromDB(player->GetGUID(), ARENA_TYPE_3v3_SOLO);
-}
-
 bool PlayerScript3v3Arena::NotSetArenaTeamInfoField(Player* player, uint8 slot, ArenaTeamInfoType /* type */, uint32 /* value */)
 {
     if (!player)
@@ -831,7 +911,7 @@ bool PlayerScript3v3Arena::NotSetArenaTeamInfoField(Player* player, uint8 slot, 
     if (slot == ArenaTeam::GetSlotByType(ARENA_TYPE_3v3_SOLO))
     {
         // sAZTH->GetAZTHPlayer(player)->setArena3v3Info(type, value);
-        return false;
+        return true;
     }
 
     return true;

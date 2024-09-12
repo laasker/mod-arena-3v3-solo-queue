@@ -104,6 +104,7 @@ public:
 
     void OnLogin(Player* pPlayer) override;
     void OnGetArenaPersonalRating(Player* player, uint8 slot, uint32& rating) override;
+    void GetCustomGetArenaTeamId(Player const* player, uint8 slot, uint32& teamID) const override;
     void OnGetMaxPersonalArenaRatingRequirement(const Player* player, uint32 minslot, uint32& maxArenaRating) const override;
     void OnGetArenaTeamId(Player* player, uint8 slot, uint32& result) override;
     bool NotSetArenaTeamInfoField(Player* player, uint8 slot, ArenaTeamInfoType type, uint32 value) override;
