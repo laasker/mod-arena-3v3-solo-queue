@@ -201,7 +201,7 @@ public:
 
         if (!player->GetArenaTeamId(ARENA_SLOT_SOLO_3v3))
         {
-            // create solo3v3 team if player don't have it
+            // create solo3v3 team if player doesn't have it
             if (!SoloCommand.CreateArenateam(player, nullptr))
                 return false;
         }
