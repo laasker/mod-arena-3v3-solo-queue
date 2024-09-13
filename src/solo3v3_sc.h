@@ -203,10 +203,9 @@ public:
         {
             // create solo3v3 team if player doesn't have it
             if (!SoloCommand.CreateArenateam(player, nullptr))
-            {
-                ChatHandler(player->GetSession()).PSendSysMessage("Join arena 3v3soloQ again!");
                 return false;
-            }
+
+            handler->PSendSysMessage("Join again arena 3v3soloQ rated!");
         }
         else
         {
