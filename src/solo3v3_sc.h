@@ -68,10 +68,11 @@ public:
     uint32 oldTeamRatingHorde;
 
     void OnQueueUpdate(BattlegroundQueue* queue, uint32 /*diff*/, BattlegroundTypeId bgTypeId, BattlegroundBracketId bracket_id, uint8 arenaType, bool isRated, uint32 /*arenaRatedTeamId*/) override;
-    void OnBattlegroundUpdate(Battleground* bg, uint32 /*diff*/) override;
     bool OnQueueUpdateValidity(BattlegroundQueue* /* queue */, uint32 /*diff*/, BattlegroundTypeId /* bgTypeId */, BattlegroundBracketId /* bracket_id */, uint8 arenaType, bool /* isRated */, uint32 /*arenaRatedTeamId*/) override;
     void OnBattlegroundDestroy(Battleground* bg) override;
     void OnBattlegroundEndReward(Battleground* bg, Player* player, TeamId /* winnerTeamId */) override;
+    void OnArenaRemovePlayerAtLeave(Battleground* bg, Player* player) override;
+    void SaveSoloTeamOnLeave(Battleground* bg, Player* player);
 };
 
 class ConfigLoader3v3Arena : public WorldScript
@@ -104,6 +105,7 @@ public:
     void OnGetArenaTeamId(Player* player, uint8 slot, uint32& result) override;
     bool NotSetArenaTeamInfoField(Player* player, uint8 slot, ArenaTeamInfoType type, uint32 value) override;
     bool CanBattleFieldPort(Player* player, uint8 arenaType, BattlegroundTypeId BGTypeID, uint8 action) override;
+    void OnArenaDesertion(Player* player, const BattlegroundDesertionType type) override;
 };
 
 
@@ -141,6 +143,45 @@ public:
             return false;
 
         return true;
+    }
+
+    void OnArenaStart(Battleground* bg) override
+    {
+        if (bg->GetArenaType() != ARENA_TYPE_3v3_SOLO)
+            return;
+
+        bool someoneNotInArena = false;
+        int PlayersInArena = 0;
+
+        for (const auto& playerPair : bg->GetPlayers())
+        {
+            // Fix crash with Arena Replay module
+            Player* player = playerPair.second;
+            if (player->IsSpectator())
+                return;
+
+            if (!player)
+                continue;
+
+            PlayersInArena++;
+        }
+
+        //uint32 bgInstanceId = bg->GetInstanceID();
+        //LOG_ERROR("bg.arena", "Current Battleground instance ID: {}", bgInstanceId);
+
+        uint32 MinPlayersPerTeam = 3 * 2;
+
+        if (PlayersInArena < MinPlayersPerTeam)
+        {
+            someoneNotInArena = true;
+        }
+
+        // if missing one player after ArenaStart and StopGameIncomplete is true, then end arena
+        if (someoneNotInArena && sConfigMgr->GetOption<bool>("Solo.3v3.StopGameIncomplete", true))
+        {
+            bg->SetRated(false);
+            bg->EndBattleground(TEAM_NEUTRAL);
+        }
     }
 };
 

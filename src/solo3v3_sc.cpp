@@ -106,7 +106,7 @@ bool NpcSolo3v3::OnGossipSelect(Player* player, Creature* creature, uint32 /*sen
             }
             else
             {
-                ChatHandler(player->GetSession()).PSendSysMessage("You need level %u+ to create an arena team.", sConfigMgr->GetOption<uint32>("Solo.3v3.MinLevel", 80));
+                ChatHandler(player->GetSession()).PSendSysMessage("You need level {}+ to create an arena team.", sConfigMgr->GetOption<uint32>("Solo.3v3.MinLevel", 80));
             }
 
             CloseGossipMenuFor(player);
@@ -510,14 +510,6 @@ bool Solo3v3BG::OnQueueUpdateValidity(BattlegroundQueue* /* queue */, uint32 /*d
     return true;
 }
 
-void Solo3v3BG::OnBattlegroundUpdate(Battleground* bg, uint32 /*diff*/)
-{
-    if (bg->GetStatus() != STATUS_IN_PROGRESS || !bg->isArena())
-        return;
-
-    sSolo->CheckStartSolo3v3Arena(bg);
-}
-
 void Solo3v3BG::OnBattlegroundDestroy(Battleground* bg)
 {
     sSolo->CleanUp3v3SoloQ(bg);
@@ -599,6 +591,93 @@ void Solo3v3BG::OnBattlegroundEndReward(Battleground* bg, Player* player, TeamId
         }
 
         plrArenaTeam->SaveToDB(true);
+    }
+}
+
+void Solo3v3BG::SaveSoloTeamOnLeave(Battleground* bg, Player* player)
+{
+    // todo - make it count as a loss for players that leave
+}
+
+// not sure if we need this hook, we already have OnArenaDesertion (but its a PlayerScript, not AllBattlegroundScript)
+void Solo3v3BG::OnArenaRemovePlayerAtLeave(Battleground* bg, Player* player)
+{
+    if (bg->GetArenaType() != ARENA_TYPE_3v3_SOLO)
+        return;
+
+    if (bg->GetStatus() == STATUS_WAIT_JOIN) // called on logout and on arena leave
+    {
+        return SaveSoloTeamOnLeave(bg, player);
+    }
+    if (bg->GetStatus() == STATUS_IN_PROGRESS)
+    {
+        return SaveSoloTeamOnLeave(bg, player);
+    }
+}
+
+void PlayerScript3v3Arena::OnArenaDesertion(Player* player, const BattlegroundDesertionType type)
+{
+    Battleground* bg = ((BattlegroundMap*)player->FindMap())->GetBG();
+
+    switch (type)
+    {
+        case BG_DESERTION_TYPE_LEAVE_BG:
+
+            if (bg->GetArenaType() == ARENA_TYPE_3v3_SOLO)
+            {
+                if (bg->GetStatus() == STATUS_WAIT_JOIN) // called on logout and on arena leave
+                {
+                    if (sConfigMgr->GetOption<bool>("Solo.3v3.CastDeserterOnAfk", true) || sConfigMgr->GetOption<bool>("Solo.3v3.CastDeserterOnLeave", true))
+                    {
+                        player->CastSpell(player, 26013, true);
+                    }
+
+                    if (sConfigMgr->GetOption<bool>("Solo.3v3.StopGameIncomplete", true))
+                    {
+                        bg->SetRated(false);
+                        bg->EndBattleground(TEAM_NEUTRAL);
+                    }
+
+                    //return SaveSoloTeamOnLeave(bg, player);
+                }
+
+                else if (bg->GetStatus() == STATUS_IN_PROGRESS)
+                {
+                    //return SaveSoloTeamOnLeave(bg, player);
+                }
+            }
+            break;
+
+        case BG_DESERTION_TYPE_NO_ENTER_BUTTON: // called if player doesn't click 'enter arena' for solo 3v3
+
+            if (player->IsInvitedForBattlegroundQueueType((BattlegroundQueueTypeId)BATTLEGROUND_QUEUE_3v3_SOLO))
+            {
+                if (sConfigMgr->GetOption<bool>("Solo.3v3.CastDeserterOnAfk", true))
+                {
+                    player->CastSpell(player, 26013, true);
+                }
+            }
+            break;
+
+        case BG_DESERTION_TYPE_INVITE_LOGOUT: // called if player logout when solo 3v3 queue pops (removes the queue)
+
+            if (player->IsInvitedForBattlegroundQueueType((BattlegroundQueueTypeId)BATTLEGROUND_QUEUE_3v3_SOLO))
+            {
+                if (sConfigMgr->GetOption<bool>("Solo.3v3.CastDeserterOnAfk", true) || sConfigMgr->GetOption<bool>("Solo.3v3.CastDeserterOnLeave", true))
+                {
+                    player->CastSpell(player, 26013, true);
+                }
+            }
+            break;
+
+        //case BG_DESERTION_TYPE_LEAVE_QUEUE: // called if player uses macro to leave queue when it pops. /run AcceptBattlefieldPort(1, 0);
+
+            // I believe these are being called after the player removes the queue, so we can't know his queue
+            //if (player->IsInvitedForBattlegroundQueueType((BattlegroundQueueTypeId)BATTLEGROUND_QUEUE_3v3_SOLO))
+            //if (player->InBattlegroundQueueForBattlegroundQueueType((BattlegroundQueueTypeId)BATTLEGROUND_QUEUE_3v3_SOLO))
+
+        default:
+            break;
     }
 }
 

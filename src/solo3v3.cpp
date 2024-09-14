@@ -63,58 +63,6 @@ void Solo3v3::CleanUp3v3SoloQ(Battleground* bg)
     }
 }
 
-void Solo3v3::CheckStartSolo3v3Arena(Battleground* bg)
-{
-    // Fix crash with Arena Replay module
-    for (const auto& playerPair : bg->GetPlayers())
-    {
-        Player* player = playerPair.second;
-        if (player->IsSpectator())
-            return;
-    }
-
-    if (bg->GetArenaType() != ARENA_TYPE_3v3_SOLO)
-        return;
-
-    if (bg->GetStatus() != STATUS_IN_PROGRESS)
-        return; // if CheckArenaWinConditions ends the game
-
-    bool someoneNotInArena = false;
-
-    ArenaTeam* team[2];
-    team[0] = sArenaTeamMgr->GetArenaTeamById(bg->GetArenaTeamIdForTeam(TEAM_ALLIANCE));
-    team[1] = sArenaTeamMgr->GetArenaTeamById(bg->GetArenaTeamIdForTeam(TEAM_HORDE));
-
-    ASSERT(team[0] && team[1]);
-
-    for (int i = 0; i < 2; i++)
-    {
-        for (auto const& itr : team[i]->GetMembers())
-        {
-            Player* plr = ObjectAccessor::FindPlayer(itr.Guid);
-            if (!plr)
-            {
-                someoneNotInArena = true;
-                continue;
-            }
-
-            if (plr->GetInstanceId() != bg->GetInstanceID())
-            {
-                if (sConfigMgr->GetOption<bool>("Solo.3v3.CastDeserterOnAfk", true))
-                    plr->CastSpell(plr, 26013, true); // Deserter
-
-                someoneNotInArena = true;
-            }
-        }
-    }
-
-    if (someoneNotInArena && sConfigMgr->GetOption<bool>("Solo.3v3.StopGameIncomplete", false))
-    {
-        bg->SetRated(false);
-        bg->EndBattleground(TEAM_NEUTRAL);
-    }
-}
-
 bool Solo3v3::CheckSolo3v3Arena(BattlegroundQueue* queue, BattlegroundBracketId bracket_id)
 {
     bool soloTeam[BG_TEAMS_COUNT][MAX_TALENT_CAT]; // 2 teams and each team 3 players - set to true when slot is taken
