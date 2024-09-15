@@ -76,7 +76,7 @@ bool Solo3v3::CheckSolo3v3Arena(BattlegroundQueue* queue, BattlegroundBracketId 
 
     uint32 MinPlayersPerTeam = 3;
 
-    bool filterTalents = sConfigMgr->GetOption<bool>("Solo.3v3.FilterTalents", false);
+    int filterTalents = sConfigMgr->GetOption<int>("Solo.3v3.FilterTalents", 0);
 
     for (int teamId = 0; teamId < 2; teamId++) // BG_QUEUE_PREMADE_ALLIANCE and BG_QUEUE_PREMADE_HORDE
     {
@@ -91,38 +91,76 @@ bool Solo3v3::CheckSolo3v3Arena(BattlegroundQueue* queue, BattlegroundBracketId 
                 if (!plr)
                     continue;
 
-                if (!filterTalents && queue->m_SelectionPools[TEAM_ALLIANCE].GetPlayerCount() + queue->m_SelectionPools[TEAM_HORDE].GetPlayerCount() == MinPlayersPerTeam * 2)
-                    return true;
+                if (filterTalents == 0)
+                {
+                    if (queue->m_SelectionPools[TEAM_ALLIANCE].GetPlayerCount() + queue->m_SelectionPools[TEAM_HORDE].GetPlayerCount() == MinPlayersPerTeam * 2)
+                        return true;
+                }
 
                 if (!plr)
                     return false;
 
                 Solo3v3TalentCat playerSlotIndex;
-                if (sConfigMgr->GetOption<bool>("Solo.3v3.FilterTalents", false))
+                if (filterTalents == 1)
                     playerSlotIndex = GetTalentCatForSolo3v3(plr);
-                else
+                else if (filterTalents == 0)
                     playerSlotIndex = GetFirstAvailableSlot(soloTeam);
 
-                // is slot free in alliance team?
-                if ((filterTalents && soloTeam[TEAM_ALLIANCE][playerSlotIndex] == false) || (!filterTalents && queue->m_SelectionPools[TEAM_ALLIANCE].GetPlayerCount() != MinPlayersPerTeam))
+                if (filterTalents == 1)
                 {
-                    if (queue->m_SelectionPools[TEAM_ALLIANCE].AddGroup((*itr), MinPlayersPerTeam)) // added successfully?
+                    if (soloTeam[TEAM_ALLIANCE][playerSlotIndex] == false) // is slot free in alliance team?
                     {
-                        soloTeam[TEAM_ALLIANCE][playerSlotIndex] = true; // okay take this slot
-
-                        if ((*itr)->teamId != TEAM_ALLIANCE) // move to other team
+                        if (queue->m_SelectionPools[TEAM_ALLIANCE].AddGroup((*itr), MinPlayersPerTeam)) // added successfully?
                         {
-                            (*itr)->teamId = TEAM_ALLIANCE;
-                            (*itr)->GroupType = BG_QUEUE_PREMADE_ALLIANCE;
-                            queue->m_QueuedGroups[bracket_id][BG_QUEUE_PREMADE_ALLIANCE].push_front((*itr));
-                            itr = queue->m_QueuedGroups[bracket_id][BG_QUEUE_PREMADE_HORDE].erase(itr);
-                            return CheckSolo3v3Arena(queue, bracket_id);
+                            soloTeam[TEAM_ALLIANCE][playerSlotIndex] = true; // okay take this slot
+
+                            if ((*itr)->teamId != TEAM_ALLIANCE) // move to other team
+                            {
+                                (*itr)->teamId = TEAM_ALLIANCE;
+                                (*itr)->GroupType = BG_QUEUE_PREMADE_ALLIANCE;
+                                queue->m_QueuedGroups[bracket_id][BG_QUEUE_PREMADE_ALLIANCE].push_front((*itr));
+                                itr = queue->m_QueuedGroups[bracket_id][BG_QUEUE_PREMADE_HORDE].erase(itr);
+                                return CheckSolo3v3Arena(queue, bracket_id);
+                            }
+                        }
+                    }
+                    else if (soloTeam[TEAM_HORDE][playerSlotIndex] == false) // nope? and in horde team?
+                    {
+                        if (queue->m_SelectionPools[TEAM_HORDE].AddGroup((*itr), MinPlayersPerTeam))
+                        {
+                            soloTeam[TEAM_HORDE][playerSlotIndex] = true;
+
+                            if ((*itr)->teamId != TEAM_HORDE) // move to other team
+                            {
+                                (*itr)->teamId = TEAM_HORDE;
+                                (*itr)->GroupType = BG_QUEUE_PREMADE_HORDE;
+                                queue->m_QueuedGroups[bracket_id][BG_QUEUE_PREMADE_HORDE].push_front((*itr));
+                                itr = queue->m_QueuedGroups[bracket_id][BG_QUEUE_PREMADE_ALLIANCE].erase(itr);
+                                return CheckSolo3v3Arena(queue, bracket_id);
+                            }
                         }
                     }
                 }
-                else if ((filterTalents && soloTeam[TEAM_HORDE][playerSlotIndex] == false) || !filterTalents) // nope? and in horde team?
+
+                if (filterTalents == 0)
                 {
-                    if (queue->m_SelectionPools[TEAM_HORDE].AddGroup((*itr), MinPlayersPerTeam))
+                    if (queue->m_SelectionPools[TEAM_ALLIANCE].GetPlayerCount() != MinPlayersPerTeam) // is slot free in alliance team?
+                    {
+                        if (queue->m_SelectionPools[TEAM_ALLIANCE].AddGroup((*itr), MinPlayersPerTeam)) // added successfully?
+                        {
+                            soloTeam[TEAM_ALLIANCE][playerSlotIndex] = true; // okay take this slot
+
+                            if ((*itr)->teamId != TEAM_ALLIANCE) // move to other team
+                            {
+                                (*itr)->teamId = TEAM_ALLIANCE;
+                                (*itr)->GroupType = BG_QUEUE_PREMADE_ALLIANCE;
+                                queue->m_QueuedGroups[bracket_id][BG_QUEUE_PREMADE_ALLIANCE].push_front((*itr));
+                                itr = queue->m_QueuedGroups[bracket_id][BG_QUEUE_PREMADE_HORDE].erase(itr);
+                                return CheckSolo3v3Arena(queue, bracket_id);
+                            }
+                        }
+                    }
+                    else if (queue->m_SelectionPools[TEAM_HORDE].AddGroup((*itr), MinPlayersPerTeam))
                     {
                         soloTeam[TEAM_HORDE][playerSlotIndex] = true;
 
@@ -146,7 +184,16 @@ bool Solo3v3::CheckSolo3v3Arena(BattlegroundQueue* queue, BattlegroundBracketId 
             if (soloTeam[i][j])
                 countAll++;
 
-    return countAll == MinPlayersPerTeam * 2 || (!filterTalents && queue->m_SelectionPools[TEAM_ALLIANCE].GetPlayerCount() + queue->m_SelectionPools[TEAM_HORDE].GetPlayerCount() == MinPlayersPerTeam * 2);
+    if (filterTalents == 1)
+    {
+        return countAll == MinPlayersPerTeam * 2;
+    }
+    else if (filterTalents == 0)
+    {
+        return (queue->m_SelectionPools[TEAM_ALLIANCE].GetPlayerCount() +
+                queue->m_SelectionPools[TEAM_HORDE].GetPlayerCount() == MinPlayersPerTeam * 2);
+
+    }
 }
 
 void Solo3v3::CreateTempArenaTeamForQueue(BattlegroundQueue* queue, ArenaTeam* arenaTeams[])
