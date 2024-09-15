@@ -530,6 +530,7 @@ void Solo3v3BG::OnBattlegroundAddPlayer(Battleground* bg, Player* player)
     uint64 playerGuidCounter = player->GetGUID().GetCounter();
     uint32 bgTeamId = player->GetBgTeamId();
     ArenaTeam* plrArenaTeam = sArenaTeamMgr->GetArenaTeamByCaptain(player->GetGUID(), ARENA_TYPE_3v3_SOLO);
+    //uint32 plrArenaTeam = player->GetArenaTeamId(ARENA_SLOT_SOLO_3v3);
 
     playerbgTeamIdMap[playerGuidCounter] = bgTeamId;
     playerArenaTeamMap[playerGuidCounter] = plrArenaTeam;
@@ -538,10 +539,10 @@ void Solo3v3BG::OnBattlegroundAddPlayer(Battleground* bg, Player* player)
     LOG_ERROR("solo3v3", "Current Battleground instance ID: {}", bgInstanceId);
     LOG_ERROR("solo3v3", "Player GUID Counter: {}", playerGuidCounter);
     LOG_ERROR("solo3v3", "Player BG Team ID: {}", bgTeamId);
-    if (plrArenaTeam)
-    {
-        LOG_ERROR("solo3v3", "Player Arena Team ID: {}", plrArenaTeam->GetId());
-    }
+    //if (plrArenaTeam)
+    //{
+    //    LOG_ERROR("solo3v3", "Player Arena Team ID: {}", plrArenaTeam->GetId());
+   // }
 }
 
 void Solo3v3BG::OnBattlegroundEndReward(Battleground* bg, Player* player, TeamId winnerTeamId)
