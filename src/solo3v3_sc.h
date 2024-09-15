@@ -25,6 +25,7 @@
 #include "Config.h"
 #include "Battleground.h"
 #include "solo3v3.h"
+#include "Spell.h"
 
 
 enum Npc3v3Actions {
@@ -189,6 +190,32 @@ public:
             bg->SetRated(false);
             bg->EndBattleground(TEAM_NEUTRAL);
         }
+    }
+};
+
+class SpellSolo3v3_SC : public SpellSC
+{
+public:
+    SpellSolo3v3_SC() : SpellSC("SpellSolo3v3_SC") { }
+
+    bool CanSelectSpecTalent(Spell* spell) override
+    {
+        if (!spell)
+            return false;
+
+        if (spell->GetCaster()->GetTypeId() == TYPEID_PLAYER) // if (spell->GetCaster()->isPlayer())
+        {
+            Player* plr = spell->GetCaster()->ToPlayer();
+
+            if (plr->InBattlegroundQueueForBattlegroundQueueType((BattlegroundQueueTypeId)BATTLEGROUND_QUEUE_3v3_SOLO) ||
+                plr->InBattlegroundQueueForBattlegroundQueueType((BattlegroundQueueTypeId)BATTLEGROUND_QUEUE_1v1))
+            {
+                plr->GetSession()->SendAreaTriggerMessage("You can't change your talents while in queue for solo arena.");
+                return false;
+            }
+        }
+
+        return true;
     }
 };
 
@@ -364,4 +391,5 @@ void AddSC_Solo_3v3_Arena()
     new PlayerScript3v3Arena();
     new Arena_SC();
     new CommandJoinSolo();
+    new SpellSolo3v3_SC();
 }
