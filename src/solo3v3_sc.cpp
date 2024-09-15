@@ -515,103 +515,164 @@ void Solo3v3BG::OnBattlegroundDestroy(Battleground* bg)
     sSolo->CleanUp3v3SoloQ(bg);
 }
 
-void Solo3v3BG::OnBattlegroundEndReward(Battleground* bg, Player* player, TeamId winnerTeamId)
-{
-    if (bg->isRated() && bg->GetArenaType() == ARENA_TYPE_3v3_SOLO)
-    {
-        ArenaTeam* plrArenaTeam = sArenaTeamMgr->GetArenaTeamByCaptain(player->GetGUID(), ARENA_TYPE_3v3_SOLO);
-
-        if (!plrArenaTeam)
-            return;
-
-        ArenaTeamStats atStats = plrArenaTeam->GetStats();
-        int32 ratingModifier;
-        int32 oldTeamRating;
-
-        TeamId bgTeamId = player->GetBgTeamId();
-        const bool isPlayerWinning = bgTeamId == winnerTeamId;
-        if (isPlayerWinning) {
-            ArenaTeam* winnerArenaTeam = sArenaTeamMgr->GetArenaTeamById(bg->GetArenaTeamIdForTeam(winnerTeamId == TEAM_NEUTRAL ? TEAM_HORDE : winnerTeamId));
-            oldTeamRating = winnerTeamId == TEAM_HORDE ? oldTeamRatingHorde : oldTeamRatingAlliance;
-            ratingModifier = int32(winnerArenaTeam->GetRating()) - oldTeamRating;
-
-            atStats.SeasonWins += 1;
-            atStats.WeekWins += 1;
-        } else {
-            ArenaTeam* loserArenaTeam  = sArenaTeamMgr->GetArenaTeamById(bg->GetArenaTeamIdForTeam(winnerTeamId == TEAM_NEUTRAL ? TEAM_ALLIANCE : bg->GetOtherTeamId(winnerTeamId)));
-            oldTeamRating = winnerTeamId != TEAM_HORDE ? oldTeamRatingHorde : oldTeamRatingAlliance;
-            ratingModifier = int32(loserArenaTeam->GetRating()) - oldTeamRating;
-        }
-
-        if (int32(atStats.Rating) + ratingModifier < 0)
-            atStats.Rating = 0;
-        else
-            atStats.Rating += ratingModifier;
-
-        atStats.SeasonGames += 1;
-        atStats.WeekGames += 1;
-
-        // Update team's rank, start with rank 1 and increase until no team with more rating was found
-        atStats.Rank = 1;
-        ArenaTeamMgr::ArenaTeamContainer::const_iterator i = sArenaTeamMgr->GetArenaTeamMapBegin();
-        for (; i != sArenaTeamMgr->GetArenaTeamMapEnd(); ++i) {
-            if (i->second->GetType() == ARENA_TYPE_3v3_SOLO && i->second->GetStats().Rating > atStats.Rating)
-                ++atStats.Rank;
-        }
-
-        plrArenaTeam->SetArenaTeamStats(atStats);
-        plrArenaTeam->NotifyStatsChanged();
-
-        for (ArenaTeam::MemberList::iterator itr = plrArenaTeam->GetMembers().begin(); itr != plrArenaTeam->GetMembers().end(); ++itr)
-        {
-            if (itr->Guid == player->GetGUID())
-            {
-                itr->PersonalRating = atStats.Rating;
-                itr->WeekWins = atStats.WeekWins;
-                itr->SeasonWins = atStats.SeasonWins;
-                itr->WeekGames = atStats.WeekGames;
-                itr->SeasonGames = atStats.SeasonGames;
-
-                if (isPlayerWinning) {
-                    // itr->MatchMakerRating = bg->GetArenaMatchmakerRating(winnerTeamId);
-                    itr->MatchMakerRating += ratingModifier;
-                    itr->MaxMMR = std::max(itr->MaxMMR, itr->MatchMakerRating);
-                } else {
-                    // itr->MatchMakerRating = bg->GetArenaMatchmakerRating(bg->GetOtherTeamId(winnerTeamId));
-
-                    if (int32(itr->MatchMakerRating) + ratingModifier < 0)
-                        itr->MatchMakerRating = 0;
-                    else
-                        itr->MatchMakerRating += ratingModifier;
-                }
-
-                break;
-            }
-
-        }
-
-        plrArenaTeam->SaveToDB(true);
-    }
-}
-
-void Solo3v3BG::SaveSoloTeamOnLeave(Battleground* bg, Player* player)
-{
-    // todo - make it count as a loss for players that leave
-}
-
-// not sure if we need this hook, we already have OnArenaDesertion (but its a PlayerScript, not AllBattlegroundScript)
-void Solo3v3BG::OnArenaRemovePlayerAtLeave(Battleground* bg, Player* player)
+void Solo3v3BG::OnBattlegroundAddPlayer(Battleground* bg, Player* player)
 {
     if (bg->GetArenaType() != ARENA_TYPE_3v3_SOLO)
         return;
 
-    if (bg->GetStatus() == STATUS_WAIT_JOIN) // called on logout and on arena leave
+    if (!bg->isRated())
+        return;
+
+    // maybe delete maps OnArenaStart and OnArenaDesertion (when wait join)
+    // also maybe count as a loss when player leave arena (when not in progress)
+
+    uint32 bgInstanceId = bg->GetInstanceID();
+    uint64 playerGuidCounter = player->GetGUID().GetCounter();
+    uint32 bgTeamId = player->GetBgTeamId();
+    ArenaTeam* plrArenaTeam = sArenaTeamMgr->GetArenaTeamByCaptain(player->GetGUID(), ARENA_TYPE_3v3_SOLO);
+
+    playerbgTeamIdMap[playerGuidCounter] = bgTeamId;
+    playerArenaTeamMap[playerGuidCounter] = plrArenaTeam;
+    playerInstanceMap[playerGuidCounter] = bgInstanceId;
+
+    LOG_ERROR("solo3v3", "Current Battleground instance ID: {}", bgInstanceId);
+    LOG_ERROR("solo3v3", "Player GUID Counter: {}", playerGuidCounter);
+    LOG_ERROR("solo3v3", "Player BG Team ID: {}", bgTeamId);
+    if (plrArenaTeam)
     {
-        return SaveSoloTeamOnLeave(bg, player);
+        LOG_ERROR("solo3v3", "Player Arena Team ID: {}", plrArenaTeam->GetId());
     }
-    if (bg->GetStatus() == STATUS_IN_PROGRESS)
+}
+
+void Solo3v3BG::OnBattlegroundEndReward(Battleground* bg, Player* player, TeamId winnerTeamId)
+{
+    if (bg->isRated() && bg->GetArenaType() == ARENA_TYPE_3v3_SOLO)
     {
-        return SaveSoloTeamOnLeave(bg, player);
+        uint32 bgInstanceId = bg->GetInstanceID();
+
+        for (const auto& entry : playerInstanceMap)
+        {
+            uint64 playerGuidCounter = entry.first;
+            uint32 storedBgInstanceId = entry.second;
+
+            if (storedBgInstanceId == bgInstanceId)
+            {
+                uint32 bgTeamId = playerbgTeamIdMap[playerGuidCounter];
+                ArenaTeam* plrArenaTeam = playerArenaTeamMap[playerGuidCounter];
+
+                //LOG_ERROR("solo3v3", "Battleground instance ID: {}", bgInstanceId);
+                if (bgTeamId == winnerTeamId)
+                {
+                    LOG_ERROR("solo3v3", "Player BGTeam ID winner");
+                }
+                else
+                {
+                    LOG_ERROR("solo3v3", "Player BGTeam ID loser");
+                }
+
+                if (!plrArenaTeam)
+                    continue;
+
+                if (plrArenaTeam)
+                {
+                    LOG_ERROR("solo3v3", "Player Arena Team ID: {}", plrArenaTeam->GetId());
+
+                    ArenaTeamStats atStats = plrArenaTeam->GetStats();
+                    int32 ratingModifier;
+                    int32 oldTeamRating;
+
+                    TeamId teamId = static_cast<TeamId>(bgTeamId);
+                    const bool isPlayerWinning = teamId == winnerTeamId;
+
+                    if (isPlayerWinning) {
+                        ArenaTeam* winnerArenaTeam = sArenaTeamMgr->GetArenaTeamById(bg->GetArenaTeamIdForTeam(winnerTeamId == TEAM_NEUTRAL ? TEAM_HORDE : winnerTeamId));
+                        oldTeamRating = winnerTeamId == TEAM_HORDE ? oldTeamRatingHorde : oldTeamRatingAlliance;
+                        ratingModifier = int32(winnerArenaTeam->GetRating()) - oldTeamRating;
+
+                        atStats.SeasonWins += 1;
+                        atStats.WeekWins += 1;
+                    }
+                    else {
+                        ArenaTeam* loserArenaTeam = sArenaTeamMgr->GetArenaTeamById(bg->GetArenaTeamIdForTeam(winnerTeamId == TEAM_NEUTRAL ? TEAM_ALLIANCE : bg->GetOtherTeamId(winnerTeamId)));
+                        oldTeamRating = winnerTeamId != TEAM_HORDE ? oldTeamRatingHorde : oldTeamRatingAlliance;
+                        ratingModifier = int32(loserArenaTeam->GetRating()) - oldTeamRating;
+                    }
+
+                    if (int32(atStats.Rating) + ratingModifier < 0)
+                        atStats.Rating = 0;
+                    else
+                        atStats.Rating += ratingModifier;
+
+                    atStats.SeasonGames += 1;
+                    atStats.WeekGames += 1;
+
+                    atStats.Rank = 1;
+                    ArenaTeamMgr::ArenaTeamContainer::const_iterator i = sArenaTeamMgr->GetArenaTeamMapBegin();
+                    for (; i != sArenaTeamMgr->GetArenaTeamMapEnd(); ++i) {
+                        if (i->second->GetType() == ARENA_TYPE_3v3_SOLO && i->second->GetStats().Rating > atStats.Rating)
+                            ++atStats.Rank;
+                    }
+
+                    //plrArenaTeam->SetArenaTeamStats(atStats);
+                    //plrArenaTeam->NotifyStatsChanged();
+
+                    for (ArenaTeam::MemberList::iterator itr = plrArenaTeam->GetMembers().begin(); itr != plrArenaTeam->GetMembers().end(); ++itr)
+                    {
+                        if (itr->Guid.GetCounter() == playerGuidCounter)
+                        {
+
+                            std::string resultText = isPlayerWinning ? "Win" : "Loss";
+                            LOG_ERROR("solo3v3", "Updating rating for player GUID: {} (Result: {})", itr->Guid.GetCounter(), resultText);
+                            LOG_ERROR("solo3v3", "PersonalRating updated to: {}", atStats.Rating);
+                            LOG_ERROR("solo3v3", "WeekWins updated to: {}", atStats.WeekWins);
+                            LOG_ERROR("solo3v3", "SeasonWins updated to: {}", atStats.SeasonWins);
+                            LOG_ERROR("solo3v3", "WeekGames updated to: {}", atStats.WeekGames);
+                            LOG_ERROR("solo3v3", "SeasonGames updated to: {}", atStats.SeasonGames);
+
+                            itr->PersonalRating = atStats.Rating;
+                            itr->WeekWins = atStats.WeekWins;
+                            itr->SeasonWins = atStats.SeasonWins;
+                            itr->WeekGames = atStats.WeekGames;
+                            itr->SeasonGames = atStats.SeasonGames;
+
+                            if (isPlayerWinning) {
+
+                                // itr->MatchMakerRating = bg->GetArenaMatchmakerRating(winnerTeamId);
+                                LOG_ERROR("solo3v3", "Player winning. Previous MMR: {}, Rating Modifier: {}", itr->MatchMakerRating, ratingModifier);
+                                itr->MatchMakerRating += ratingModifier;
+                                itr->MaxMMR = std::max(itr->MaxMMR, itr->MatchMakerRating);
+                            }
+                            else {
+                                // itr->MatchMakerRating = bg->GetArenaMatchmakerRating(bg->GetOtherTeamId(winnerTeamId));
+
+                                if (int32(itr->MatchMakerRating) + ratingModifier < 0)
+                                    itr->MatchMakerRating = 0;
+                                else
+                                    itr->MatchMakerRating += ratingModifier;
+
+                                LOG_ERROR("solo3v3", "New MMR after loss: {}", itr->MatchMakerRating);
+                            }
+
+                            break;
+                        }
+                    }
+
+                    plrArenaTeam->SetArenaTeamStats(atStats);
+                    plrArenaTeam->NotifyStatsChanged();
+                    plrArenaTeam->SaveToDB(true);
+                    LOG_ERROR("solo3v3", "OnBattlegroundEndReward SaveToDB");
+
+                    // delete maps after saving teams
+                    playerbgTeamIdMap.erase(playerGuidCounter);
+                    playerArenaTeamMap.erase(playerGuidCounter);
+                    playerInstanceMap.erase(playerGuidCounter);
+
+
+                    // Kick player -- saving alt tab time for testing - delete this later
+                    player->LeaveBattleground();
+                }
+            }
+        }
     }
 }
 
@@ -637,14 +698,8 @@ void PlayerScript3v3Arena::OnArenaDesertion(Player* player, const BattlegroundDe
                         bg->SetRated(false);
                         bg->EndBattleground(TEAM_NEUTRAL);
                     }
-
-                    //return SaveSoloTeamOnLeave(bg, player);
                 }
-
-                else if (bg->GetStatus() == STATUS_IN_PROGRESS)
-                {
-                    //return SaveSoloTeamOnLeave(bg, player);
-                }
+                //else if (bg->GetStatus() == STATUS_IN_PROGRESS)
             }
             break;
 

@@ -71,9 +71,20 @@ public:
     bool OnQueueUpdateValidity(BattlegroundQueue* /* queue */, uint32 /*diff*/, BattlegroundTypeId /* bgTypeId */, BattlegroundBracketId /* bracket_id */, uint8 arenaType, bool /* isRated */, uint32 /*arenaRatedTeamId*/) override;
     void OnBattlegroundDestroy(Battleground* bg) override;
     void OnBattlegroundEndReward(Battleground* bg, Player* player, TeamId /* winnerTeamId */) override;
-    void OnArenaRemovePlayerAtLeave(Battleground* bg, Player* player) override;
-    void SaveSoloTeamOnLeave(Battleground* bg, Player* player);
+    void OnBattlegroundAddPlayer(Battleground* bg, Player* player) override;
+
+    //static std::unordered_map<uint64, uint32> playerbgTeamIdMap;
+    //static std::unordered_map<uint64, ArenaTeam*> playerArenaTeamMap;
+    //static std::unordered_map<uint64, uint32> playerInstanceMap;
+private:
+    std::unordered_map<uint64, uint32> playerbgTeamIdMap;
+    std::unordered_map<uint64, ArenaTeam*> playerArenaTeamMap;
+    std::unordered_map<uint64, uint32> playerInstanceMap;
 };
+
+//std::unordered_map<uint64, uint32> Solo3v3BG::playerbgTeamIdMap;
+//std::unordered_map<uint64, ArenaTeam*> Solo3v3BG::playerArenaTeamMap;
+//std::unordered_map<uint64, uint32> Solo3v3BG::playerInstanceMap;
 
 class ConfigLoader3v3Arena : public WorldScript
 {
@@ -150,9 +161,7 @@ public:
         if (bg->GetArenaType() != ARENA_TYPE_3v3_SOLO)
             return;
 
-        bool someoneNotInArena = false;
         int PlayersInArena = 0;
-
         for (const auto& playerPair : bg->GetPlayers())
         {
             // Fix crash with Arena Replay module
@@ -166,11 +175,9 @@ public:
             PlayersInArena++;
         }
 
-        //uint32 bgInstanceId = bg->GetInstanceID();
-        //LOG_ERROR("bg.arena", "Current Battleground instance ID: {}", bgInstanceId);
-
         uint32 MinPlayersPerTeam = 3 * 2;
 
+        bool someoneNotInArena = false;
         if (PlayersInArena < MinPlayersPerTeam)
         {
             someoneNotInArena = true;
