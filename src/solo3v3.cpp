@@ -101,7 +101,7 @@ bool Solo3v3::CheckSolo3v3Arena(BattlegroundQueue* queue, BattlegroundBracketId 
                     return false;
 
                 Solo3v3TalentCat playerSlotIndex;
-                if (filterTalents == 1)
+                if (filterTalents == 1 || filterTalents == 3)
                     playerSlotIndex = GetTalentCatForSolo3v3(plr);
                 else if (filterTalents == 0)
                     playerSlotIndex = GetFirstAvailableSlot(soloTeam);
@@ -142,7 +142,7 @@ bool Solo3v3::CheckSolo3v3Arena(BattlegroundQueue* queue, BattlegroundBracketId 
                     }
                 }
 
-                if (filterTalents == 0)
+                else if (filterTalents == 0)
                 {
                     if (queue->m_SelectionPools[TEAM_ALLIANCE].GetPlayerCount() != MinPlayersPerTeam) // is slot free in alliance team?
                     {
@@ -174,6 +174,118 @@ bool Solo3v3::CheckSolo3v3Arena(BattlegroundQueue* queue, BattlegroundBracketId 
                         }
                     }
                 }
+
+                else if (filterTalents == 3)
+                {
+                    bool hasHealerAlliance = false;
+                    bool hasHealerHorde = false;
+                    int countHealersInAlliance = 0;
+                    int countHealersInHorde = 0;
+
+                    for (auto& group : queue->m_SelectionPools[TEAM_ALLIANCE].SelectedGroups)
+                    {
+                        for (auto& guid : group->Players)
+                        {
+                            Player* player = ObjectAccessor::FindPlayer(guid);
+                            if (player && GetTalentCatForSolo3v3(player) == HEALER)
+                            {
+                                hasHealerAlliance = true;
+                                countHealersInAlliance++;
+                                break;
+                            }
+                        }
+                        if (hasHealerAlliance)
+                            break;
+                    }
+                    for (auto& group : queue->m_SelectionPools[TEAM_HORDE].SelectedGroups)
+                    {
+                        for (auto& guid : group->Players)
+                        {
+                            Player* player = ObjectAccessor::FindPlayer(guid);
+                            if (player && GetTalentCatForSolo3v3(player) == HEALER)
+                            {
+                                hasHealerHorde = true;
+                                countHealersInHorde++;
+                                break;
+                            }
+                        }
+                        if (hasHealerHorde)
+                            break;
+                    }
+
+                    if (playerSlotIndex == HEALER)
+                    {
+                        if (queue->m_SelectionPools[TEAM_ALLIANCE].GetPlayerCount() < MinPlayersPerTeam && (!hasHealerAlliance && countHealersInAlliance < 1))
+                        {
+                            if (queue->m_SelectionPools[TEAM_ALLIANCE].AddGroup((*itr), MinPlayersPerTeam))
+                            {
+                                soloTeam[TEAM_ALLIANCE][playerSlotIndex] = true;
+
+                                if ((*itr)->teamId != TEAM_ALLIANCE)
+                                {
+                                    (*itr)->teamId = TEAM_ALLIANCE;
+                                    (*itr)->GroupType = BG_QUEUE_PREMADE_ALLIANCE;
+                                    queue->m_QueuedGroups[bracket_id][BG_QUEUE_PREMADE_ALLIANCE].push_front((*itr));
+                                    itr = queue->m_QueuedGroups[bracket_id][BG_QUEUE_PREMADE_HORDE].erase(itr);
+                                    return CheckSolo3v3Arena(queue, bracket_id);
+                                }
+                            }
+                        }
+                        else if (queue->m_SelectionPools[TEAM_HORDE].GetPlayerCount() < MinPlayersPerTeam && (!hasHealerHorde && countHealersInHorde < 1))
+                        {
+                            if (queue->m_SelectionPools[TEAM_HORDE].AddGroup((*itr), MinPlayersPerTeam))
+                            {
+                                soloTeam[TEAM_HORDE][playerSlotIndex] = true;
+
+                                if ((*itr)->teamId != TEAM_HORDE)
+                                {
+                                    (*itr)->teamId = TEAM_HORDE;
+                                    (*itr)->GroupType = BG_QUEUE_PREMADE_HORDE;
+                                    queue->m_QueuedGroups[bracket_id][BG_QUEUE_PREMADE_HORDE].push_front((*itr));
+                                    itr = queue->m_QueuedGroups[bracket_id][BG_QUEUE_PREMADE_ALLIANCE].erase(itr);
+                                    return CheckSolo3v3Arena(queue, bracket_id);
+                                }
+                            }
+                        }
+                    }
+
+                    // TO DO! not fixed yet
+                    else if (playerSlotIndex == MELEE || playerSlotIndex == RANGE)
+                    {
+                        if (queue->m_SelectionPools[TEAM_ALLIANCE].GetPlayerCount() != 2)// MinPlayersPerTeam && hasHealerAlliance) //countHealersInAlliance == 1)
+                        {
+                            if (queue->m_SelectionPools[TEAM_ALLIANCE].AddGroup((*itr), 2))//MinPlayersPerTeam))
+                            {
+                                soloTeam[TEAM_ALLIANCE][playerSlotIndex] = true;
+
+                                if ((*itr)->teamId != TEAM_ALLIANCE)
+                                {
+                                    (*itr)->teamId = TEAM_ALLIANCE;
+                                    (*itr)->GroupType = BG_QUEUE_PREMADE_ALLIANCE;
+                                    queue->m_QueuedGroups[bracket_id][BG_QUEUE_PREMADE_ALLIANCE].push_front((*itr));
+                                    itr = queue->m_QueuedGroups[bracket_id][BG_QUEUE_PREMADE_HORDE].erase(itr);
+                                    return CheckSolo3v3Arena(queue, bracket_id);
+                                }
+                            }
+                        }
+                        else if (queue->m_SelectionPools[TEAM_HORDE].GetPlayerCount() != 2)//MinPlayersPerTeam && hasHealerHorde) //countHealersInHorde == 1)
+                        {
+                            if (queue->m_SelectionPools[TEAM_HORDE].AddGroup((*itr), 2))//MinPlayersPerTeam))
+                            {
+                                soloTeam[TEAM_HORDE][playerSlotIndex] = true;
+
+                                if ((*itr)->teamId != TEAM_HORDE)
+                                {
+                                    (*itr)->teamId = TEAM_HORDE;
+                                    (*itr)->GroupType = BG_QUEUE_PREMADE_HORDE;
+                                    queue->m_QueuedGroups[bracket_id][BG_QUEUE_PREMADE_HORDE].push_front((*itr));
+                                    itr = queue->m_QueuedGroups[bracket_id][BG_QUEUE_PREMADE_ALLIANCE].erase(itr);
+                                    return CheckSolo3v3Arena(queue, bracket_id);
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -188,11 +300,12 @@ bool Solo3v3::CheckSolo3v3Arena(BattlegroundQueue* queue, BattlegroundBracketId 
     {
         return countAll == MinPlayersPerTeam * 2;
     }
-    else if (filterTalents == 0)
+    else
     {
-        return (queue->m_SelectionPools[TEAM_ALLIANCE].GetPlayerCount() +
-                queue->m_SelectionPools[TEAM_HORDE].GetPlayerCount() == MinPlayersPerTeam * 2);
+        LOG_ERROR("solo3v3", "Total de jogadores na Alliance: {}, Horde: {}", queue->m_SelectionPools[TEAM_ALLIANCE].GetPlayerCount(), queue->m_SelectionPools[TEAM_HORDE].GetPlayerCount());
 
+        return (queue->m_SelectionPools[TEAM_ALLIANCE].GetPlayerCount() +
+            queue->m_SelectionPools[TEAM_HORDE].GetPlayerCount() == MinPlayersPerTeam * 2);
     }
 }
 
