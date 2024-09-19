@@ -704,6 +704,7 @@ void PlayerScript3v3Arena::OnArenaDesertion(Player* player, const BattlegroundDe
             }
             break;
 
+        // to do: reduzir tempo de fila de arena (da pra esperar uns 50s na fila, clickar p entrar no final e n tomar deserter, e a arena vai ter acabado)
         case BG_DESERTION_TYPE_NO_ENTER_BUTTON: // called if player doesn't click 'enter arena' for solo 3v3
 
             if (player->IsInvitedForBattlegroundQueueType((BattlegroundQueueTypeId)BATTLEGROUND_QUEUE_3v3_SOLO))
