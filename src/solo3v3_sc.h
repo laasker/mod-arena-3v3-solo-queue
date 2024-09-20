@@ -70,6 +70,12 @@ public:
     bool OnQueueUpdateValidity(BattlegroundQueue* /* queue */, uint32 /*diff*/, BattlegroundTypeId /* bgTypeId */, BattlegroundBracketId /* bracket_id */, uint8 arenaType, bool /* isRated */, uint32 /*arenaRatedTeamId*/) override;
     void OnBattlegroundDestroy(Battleground* bg) override;
     void OnBattlegroundEndReward(Battleground* bg, Player* player, TeamId /* winnerTeamId */) override;
+    void OnBattlegroundAddPlayer(Battleground* bg, Player* player) override;
+
+private:
+    std::unordered_map<uint64, uint32> playerInstanceMap;
+    std::unordered_map<uint64, uint32> playerbgTeamIdMap;
+    std::unordered_map<uint64, ArenaTeam*> playerArenaTeamMap;
 };
 
 class ConfigLoader3v3Arena : public WorldScript
