@@ -328,6 +328,10 @@ bool NpcSolo3v3::JoinQueueArena(Player* player, Creature* /*creature*/, bool isR
     sBattlegroundMgr->BuildBattlegroundStatusPacket(&data, bg, queueSlot, STATUS_WAIT_QUEUE, avgTime, 0, arenatype, TEAM_NEUTRAL, isRated);
     player->GetSession()->SendPacket(&data);
 
+    if (isRated && matchmakerRating == 0) {
+        matchmakerRating = 1;
+    }
+
     sBattlegroundMgr->ScheduleQueueUpdate(matchmakerRating, ARENA_TYPE_3v3_SOLO, bgQueueTypeId, bgTypeId, bracketEntry->GetBracketId());
 
     sScriptMgr->OnPlayerJoinArena(player);
@@ -453,7 +457,7 @@ void NpcSolo3v3::fetchQueueList()
     }
 }
 
-void Solo3v3BG::OnQueueUpdate(BattlegroundQueue* queue, uint32 /*diff*/, BattlegroundTypeId bgTypeId, BattlegroundBracketId bracket_id, uint8 arenaType, bool /* isRated */, uint32 /*arenaRatedTeamId*/)
+void Solo3v3BG::OnQueueUpdate(BattlegroundQueue* queue, uint32 /*diff*/, BattlegroundTypeId bgTypeId, BattlegroundBracketId bracket_id, uint8 arenaType, bool isRated, uint32 /*arenaRatedTeamId*/)
 {
     if (arenaType != (ArenaType)ARENA_TYPE_3v3_SOLO)
         return;
@@ -467,10 +471,9 @@ void Solo3v3BG::OnQueueUpdate(BattlegroundQueue* queue, uint32 /*diff*/, Battleg
     if (!bracketEntry)
         return;
 
-    if (sSolo->CheckSolo3v3Arena(queue, bracket_id))
+    if (sSolo->CheckSolo3v3Arena(queue, bracket_id, isRated))
     {
-        const bool _isRated = true;
-        Battleground* arena = sBattlegroundMgr->CreateNewBattleground(bgTypeId, bracketEntry, arenaType, _isRated);
+        Battleground* arena = sBattlegroundMgr->CreateNewBattleground(bgTypeId, bracketEntry, arenaType, isRated);
         if (!arena)
             return;
 

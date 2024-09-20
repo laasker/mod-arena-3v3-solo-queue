@@ -125,7 +125,7 @@ public:
     uint32 GetAverageMMR(ArenaTeam* team);
     void CheckStartSolo3v3Arena(Battleground* bg);
     void CleanUp3v3SoloQ(Battleground* bg);
-    bool CheckSolo3v3Arena(BattlegroundQueue* queue, BattlegroundBracketId bracket_id);
+    bool CheckSolo3v3Arena(BattlegroundQueue* queue, BattlegroundBracketId bracket_id, bool isRated);
     void CreateTempArenaTeamForQueue(BattlegroundQueue* queue, ArenaTeam* arenaTeams[]);
 
     // Return false, if player have invested more than 35 talentpoints in a forbidden talenttree.

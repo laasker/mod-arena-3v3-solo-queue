@@ -115,7 +115,7 @@ void Solo3v3::CheckStartSolo3v3Arena(Battleground* bg)
     }
 }
 
-bool Solo3v3::CheckSolo3v3Arena(BattlegroundQueue* queue, BattlegroundBracketId bracket_id)
+bool Solo3v3::CheckSolo3v3Arena(BattlegroundQueue* queue, BattlegroundBracketId bracket_id, bool isRated)
 {
     bool soloTeam[BG_TEAMS_COUNT][MAX_TALENT_CAT]; // 2 teams and each team 3 players - set to true when slot is taken
 
@@ -132,7 +132,12 @@ bool Solo3v3::CheckSolo3v3Arena(BattlegroundQueue* queue, BattlegroundBracketId 
 
     for (int teamId = 0; teamId < 2; teamId++) // BG_QUEUE_PREMADE_ALLIANCE and BG_QUEUE_PREMADE_HORDE
     {
-        for (BattlegroundQueue::GroupsQueueType::iterator itr = queue->m_QueuedGroups[bracket_id][teamId].begin(); itr != queue->m_QueuedGroups[bracket_id][teamId].end(); ++itr)
+        int index = teamId;
+
+        if (!isRated)
+            index += PVP_TEAMS_COUNT;
+
+        for (BattlegroundQueue::GroupsQueueType::iterator itr = queue->m_QueuedGroups[bracket_id][index].begin(); itr != queue->m_QueuedGroups[bracket_id][index].end(); ++itr)
         {
             if ((*itr)->IsInvitedToBGInstanceGUID) // Skip when invited
                 continue;
@@ -168,7 +173,7 @@ bool Solo3v3::CheckSolo3v3Arena(BattlegroundQueue* queue, BattlegroundBracketId 
                             (*itr)->GroupType = BG_QUEUE_PREMADE_ALLIANCE;
                             queue->m_QueuedGroups[bracket_id][BG_QUEUE_PREMADE_ALLIANCE].push_front((*itr));
                             itr = queue->m_QueuedGroups[bracket_id][BG_QUEUE_PREMADE_HORDE].erase(itr);
-                            return CheckSolo3v3Arena(queue, bracket_id);
+                            return CheckSolo3v3Arena(queue, bracket_id, isRated);
                         }
                     }
                 }
@@ -184,7 +189,7 @@ bool Solo3v3::CheckSolo3v3Arena(BattlegroundQueue* queue, BattlegroundBracketId 
                             (*itr)->GroupType = BG_QUEUE_PREMADE_HORDE;
                             queue->m_QueuedGroups[bracket_id][BG_QUEUE_PREMADE_HORDE].push_front((*itr));
                             itr = queue->m_QueuedGroups[bracket_id][BG_QUEUE_PREMADE_ALLIANCE].erase(itr);
-                            return CheckSolo3v3Arena(queue, bracket_id);
+                            return CheckSolo3v3Arena(queue, bracket_id, isRated);
                         }
                     }
                 }
