@@ -62,21 +62,23 @@ class Solo3v3BG : public AllBattlegroundScript
 public:
     Solo3v3BG() : AllBattlegroundScript("Solo3v3_BG") {}
 
+    static std::unordered_map<uint64, uint32> playerInstanceMap;
+    static std::unordered_map<uint64, uint32> playerbgTeamIdMap;
+    static std::unordered_map<uint64, ArenaTeam*> playerArenaTeamMap;
+
     uint32 oldTeamRatingAlliance;
     uint32 oldTeamRatingHorde;
 
     void OnQueueUpdate(BattlegroundQueue* queue, uint32 /*diff*/, BattlegroundTypeId bgTypeId, BattlegroundBracketId bracket_id, uint8 arenaType, bool isRated, uint32 /*arenaRatedTeamId*/) override;
-    void OnBattlegroundUpdate(Battleground* bg, uint32 /*diff*/) override;
     bool OnQueueUpdateValidity(BattlegroundQueue* /* queue */, uint32 /*diff*/, BattlegroundTypeId /* bgTypeId */, BattlegroundBracketId /* bracket_id */, uint8 arenaType, bool /* isRated */, uint32 /*arenaRatedTeamId*/) override;
     void OnBattlegroundDestroy(Battleground* bg) override;
     void OnBattlegroundEndReward(Battleground* bg, Player* player, TeamId /* winnerTeamId */) override;
     void OnBattlegroundAddPlayer(Battleground* bg, Player* player) override;
-
-private:
-    std::unordered_map<uint64, uint32> playerInstanceMap;
-    std::unordered_map<uint64, uint32> playerbgTeamIdMap;
-    std::unordered_map<uint64, ArenaTeam*> playerArenaTeamMap;
 };
+
+std::unordered_map<uint64, uint32> Solo3v3BG::playerInstanceMap;
+std::unordered_map<uint64, uint32> Solo3v3BG::playerbgTeamIdMap;
+std::unordered_map<uint64, ArenaTeam*> Solo3v3BG::playerArenaTeamMap;
 
 class ConfigLoader3v3Arena : public WorldScript
 {
@@ -108,6 +110,7 @@ public:
     void OnGetArenaTeamId(Player* player, uint8 slot, uint32& result) override;
     bool NotSetArenaTeamInfoField(Player* player, uint8 slot, ArenaTeamInfoType type, uint32 value) override;
     bool CanBattleFieldPort(Player* player, uint8 arenaType, BattlegroundTypeId BGTypeID, uint8 action) override;
+    void OnBattlegroundDesertion(Player* player, const BattlegroundDesertionType type) override;
 };
 
 class Arena_SC : public ArenaScript
@@ -144,6 +147,55 @@ public:
             return false;
 
         return true;
+    }
+
+    void OnArenaStart(Battleground* bg) override
+    {
+        if (bg->GetArenaType() != ARENA_TYPE_3v3_SOLO)
+            return;
+
+        int PlayersInArena = 0;
+        for (const auto& playerPair : bg->GetPlayers())
+        {
+            Player* player = playerPair.second;
+
+            // Fix crash with Arena Replay module
+            if (player->IsSpectator())
+                return;
+
+            if (!player)
+                continue;
+
+            PlayersInArena++;
+        }
+
+        bool someoneNotInArena = false;
+        uint32 MinPlayersPerTeam = 3 * 2;
+        if (PlayersInArena < MinPlayersPerTeam)
+        {
+            someoneNotInArena = true;
+        }
+
+        // if one player didn't enter arena and StopGameIncomplete is true, then end arena and delete stored maps of current arena
+        if (someoneNotInArena && sConfigMgr->GetOption<bool>("Solo.3v3.StopGameIncomplete", true))
+        {
+            uint32 bgInstanceId = bg->GetInstanceID();
+            for (auto it = Solo3v3BG::playerInstanceMap.begin(); it != Solo3v3BG::playerInstanceMap.end();)
+            {
+                uint64 playerGuid = it->first;
+                uint32 storedBgInstanceId = it->second;
+
+                if (storedBgInstanceId == bgInstanceId)
+                {
+                    Solo3v3BG::playerbgTeamIdMap.erase(playerGuid);
+                    Solo3v3BG::playerArenaTeamMap.erase(playerGuid);
+                    it = Solo3v3BG::playerInstanceMap.erase(it);
+                }
+            }
+
+            bg->SetRated(false);
+            bg->EndBattleground(TEAM_NEUTRAL);
+        }
     }
 };
 
