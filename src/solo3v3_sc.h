@@ -132,15 +132,6 @@ public:
         return true;
     }
 
-    void OnGetPoints(ArenaTeam* team, uint32 /* memberRating */, float& points) override
-    {
-        if (!team)
-            return;
-
-        if (team->GetType() == ARENA_TEAM_SOLO_3v3)
-            points *= sConfigMgr->GetOption<float>("Solo.3v3.ArenaPointsMulti", 0.88f);
-    }
-
     bool CanSaveToDB(ArenaTeam* team) override
     {
         if (team->GetId() >= MAX_ARENA_TEAM_ID)

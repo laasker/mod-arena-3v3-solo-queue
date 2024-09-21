@@ -368,7 +368,7 @@ bool NpcSolo3v3::CreateArenateam(Player* player, Creature* /*creature*/)
     // Create arena team
     ArenaTeam* arenaTeam = new ArenaTeam();
 
-    if (!arenaTeam->Create(player->GetGUID(), uint8(ARENA_TYPE_3v3_SOLO), teamName.str(), 4283124816, 45, 4294242303, 5, 4294705149))
+    if (!arenaTeam->Create(player->GetGUID(), uint8(ARENA_TEAM_SOLO_3v3), teamName.str(), 4283124816, 45, 4294242303, 5, 4294705149))
     {
         delete arenaTeam;
         return false;
@@ -648,7 +648,7 @@ void ConfigLoader3v3Arena::OnAfterConfigLoad(bool /*Reload*/)
 
 void Team3v3arena::OnGetSlotByType(const uint32 type, uint8& slot)
 {
-    if (type == ARENA_TYPE_3v3_SOLO)
+    if (type == ARENA_TYPE_3v3_SOLO) // not sure
     {
         slot = ARENA_SLOT_SOLO_3v3;
     }
@@ -656,7 +656,7 @@ void Team3v3arena::OnGetSlotByType(const uint32 type, uint8& slot)
 
 void Team3v3arena::OnGetArenaPoints(ArenaTeam* at, float& points)
 {
-    if (at->GetType() == ARENA_TYPE_3v3_SOLO)
+    if (at->GetType() == ARENA_TEAM_SOLO_3v3)
     {
         points *= sConfigMgr->GetOption<float>("Solo.3v3.ArenaPointsMulti", 0.8f);
     }
@@ -664,7 +664,7 @@ void Team3v3arena::OnGetArenaPoints(ArenaTeam* at, float& points)
 
 void Team3v3arena::OnTypeIDToQueueID(const BattlegroundTypeId, const uint8 arenaType, uint32& _bgQueueTypeId)
 {
-    if (arenaType == ARENA_TYPE_3v3_SOLO)
+    if (arenaType == ARENA_TYPE_3v3_SOLO) // not sure
     {
         _bgQueueTypeId = bgQueueTypeId;
     }
@@ -674,7 +674,9 @@ void Team3v3arena::OnQueueIdToArenaType(const BattlegroundQueueTypeId _bgQueueTy
 {
     if (_bgQueueTypeId == bgQueueTypeId)
     {
-        arenaType = ARENA_TYPE_3v3_SOLO;
+        arenaType = ARENA_TYPE_3v3_SOLO; // not sure
+    }
+}
 
 void PlayerScript3v3Arena::OnBattlegroundDesertion(Player* player, const BattlegroundDesertionType type)
 {
@@ -761,8 +763,6 @@ void PlayerScript3v3Arena::OnBattlegroundDesertion(Player* player, const Battleg
             break;
     }
 }
-    }
-}
 
 void PlayerScript3v3Arena::OnLogin(Player* pPlayer)
 {
@@ -775,7 +775,7 @@ void PlayerScript3v3Arena::OnGetArenaPersonalRating(Player* player, uint8 slot, 
 {
     if (slot == ARENA_SLOT_SOLO_3v3)
     {
-        if (ArenaTeam* at = sArenaTeamMgr->GetArenaTeamByCaptain(player->GetGUID(), ARENA_TYPE_3v3_SOLO))
+        if (ArenaTeam* at = sArenaTeamMgr->GetArenaTeamByCaptain(player->GetGUID(), ARENA_TEAM_SOLO_3v3))
         {
             rating = at->GetRating();
         }
@@ -791,7 +791,7 @@ void PlayerScript3v3Arena::OnGetMaxPersonalArenaRatingRequirement(const Player* 
 
     if (minslot < 6)
     {
-        if (ArenaTeam* at = sArenaTeamMgr->GetArenaTeamByCaptain(player->GetGUID(), ARENA_TYPE_3v3_SOLO))
+        if (ArenaTeam* at = sArenaTeamMgr->GetArenaTeamByCaptain(player->GetGUID(), ARENA_TEAM_SOLO_3v3))
         {
             maxArenaRating = std::max(at->GetRating(), maxArenaRating);
         }
@@ -804,7 +804,7 @@ void PlayerScript3v3Arena::OnGetArenaTeamId(Player* player, uint8 slot, uint32& 
         return;
 
     if (slot == ARENA_SLOT_SOLO_3v3)
-        result = player->GetArenaTeamIdFromDB(player->GetGUID(), ARENA_TYPE_3v3_SOLO);
+        result = player->GetArenaTeamIdFromDB(player->GetGUID(), ARENA_TEAM_SOLO_3v3); // important!
 }
 
 bool PlayerScript3v3Arena::NotSetArenaTeamInfoField(Player* player, uint8 slot, ArenaTeamInfoType /* type */, uint32 /* value */)
@@ -814,7 +814,7 @@ bool PlayerScript3v3Arena::NotSetArenaTeamInfoField(Player* player, uint8 slot, 
 
     if (slot == ARENA_SLOT_SOLO_3v3)
     {
-        return false;
+        return true;
     }
 
     return true;
