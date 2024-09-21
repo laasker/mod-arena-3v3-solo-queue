@@ -747,3 +747,28 @@ bool PlayerScript3v3Arena::CanBattleFieldPort(Player* player, uint8 arenaType, B
 //         return true;
 //     }
 // }
+
+void AddSC_Solo_3v3_Arena()
+{
+    if (!ArenaTeam::ArenaSlotByType.count(ARENA_TEAM_SOLO_3v3))
+        ArenaTeam::ArenaSlotByType[ARENA_TEAM_SOLO_3v3] = ARENA_SLOT_SOLO_3v3;
+
+    if (!ArenaTeam::ArenaReqPlayersForType.count(ARENA_TYPE_3v3_SOLO))
+        ArenaTeam::ArenaReqPlayersForType[ARENA_TYPE_3v3_SOLO] = 6;
+
+    if (!BattlegroundMgr::queueToBg.count(BATTLEGROUND_QUEUE_3v3_SOLO))
+        BattlegroundMgr::queueToBg[BATTLEGROUND_QUEUE_3v3_SOLO] = BATTLEGROUND_AA;
+
+    if (!BattlegroundMgr::ArenaTypeToQueue.count(ARENA_TYPE_3v3_SOLO))
+        BattlegroundMgr::ArenaTypeToQueue[ARENA_TYPE_3v3_SOLO] = (BattlegroundQueueTypeId)BATTLEGROUND_QUEUE_3v3_SOLO;
+
+    if (!BattlegroundMgr::QueueToArenaType.count(BATTLEGROUND_QUEUE_3v3_SOLO))
+        BattlegroundMgr::QueueToArenaType[BATTLEGROUND_QUEUE_3v3_SOLO] = (ArenaType)ARENA_TYPE_3v3_SOLO;
+
+    new NpcSolo3v3();
+    new Solo3v3BG();
+    new Team3v3arena();
+    new ConfigLoader3v3Arena();
+    new PlayerScript3v3Arena();
+    new Arena_SC();
+}

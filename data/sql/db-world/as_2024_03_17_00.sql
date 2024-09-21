@@ -24,7 +24,9 @@ DELETE FROM `npc_text` WHERE `ID` = @entryNpcText2;
 INSERT INTO `npc_text` (`ID`, `text0_0`) VALUES (@entryNpcText2, @text2);
 
 -- Command
-DELETE FROM `command` WHERE `name` IN ('qsolo', 'testqsolo');
+DELETE FROM `command` WHERE `name` IN ('qsolo', 'qsolo rated', 'qsolo unrated', 'testqsolo');
 INSERT INTO `command` (`name`, `security`, `help`) VALUES
-('qsolo', 0, '.qsolo -> join arena 3v3soloQ'),
+('qsolo', 0, '.qsolo rated/unrated\nJoin arena 3v3soloQ rated or unrated'),
+('qsolo rated', 0, 'Syntax .qsolo rated\nJoin arena 3v3soloQ rated'),
+('qsolo unrated', 0, 'Syntax .qsolo unrated\nJoin arena 3v3soloQ unrated'),
 ('testqsolo', 4, '.testqsolo -> join arena 3v3soloQ for testing');
