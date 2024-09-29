@@ -127,6 +127,7 @@ public:
     void CleanUp3v3SoloQ(Battleground* bg);
     bool CheckSolo3v3Arena(BattlegroundQueue* queue, BattlegroundBracketId bracket_id, bool isRated);
     void CreateTempArenaTeamForQueue(BattlegroundQueue* queue, ArenaTeam* arenaTeams[]);
+    void CountAsLoss(Player* player, bool isInProgress);
 
     // Return false, if player have invested more than 35 talentpoints in a forbidden talenttree.
     bool Arena3v3CheckTalents(Player* player);
