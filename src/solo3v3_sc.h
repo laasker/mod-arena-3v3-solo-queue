@@ -26,7 +26,10 @@
 #include "Battleground.h"
 #include "solo3v3.h"
 
+#define NPC_TEXT_3v3 1000004
+
 enum Npc3v3Actions {
+    NPC_3v3_ACTION_MAIN_MENU = 0,
     NPC_3v3_ACTION_CREATE_ARENA_TEAM = 1,
     NPC_3v3_ACTION_JOIN_QUEUE_ARENA_RATED = 2,
     NPC_3v3_ACTION_LEAVE_QUEUE = 3,

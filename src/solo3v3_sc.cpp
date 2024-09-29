@@ -52,10 +52,10 @@ bool NpcSolo3v3::OnGossipHello(Player* player, Creature* creature)
     AddGossipItemFor(player, GOSSIP_ICON_CHAT, infoQueue.str().c_str(), GOSSIP_SENDER_MAIN, 0);
 
     if (player->InBattlegroundQueueForBattlegroundQueueType((BattlegroundQueueTypeId)BATTLEGROUND_QUEUE_3v3_SOLO))
-        AddGossipItemFor(player, GOSSIP_ICON_INTERACT_1, "|TInterface/ICONS/Achievement_Arena_2v2_7:30|t Leave Solo queue", GOSSIP_SENDER_MAIN, NPC_3v3_ACTION_LEAVE_QUEUE, "Are you sure you want to remove the solo queue?", 0, false);
+        AddGossipItemFor(player, GOSSIP_ICON_INTERACT_1, "|TInterface/ICONS/Achievement_Arena_2v2_7:30:30:-18:0|t Leave Solo queue", GOSSIP_SENDER_MAIN, NPC_3v3_ACTION_LEAVE_QUEUE, "Are you sure you want to remove the solo queue?", 0, false);
 
     if (!player->InBattlegroundQueueForBattlegroundQueueType((BattlegroundQueueTypeId)BATTLEGROUND_QUEUE_3v3_SOLO))
-        AddGossipItemFor(player, GOSSIP_ICON_INTERACT_1, "|TInterface/ICONS/Achievement_Arena_3v3_5:30|t Queue up for 3vs3 Arena Solo (UnRated)\n", GOSSIP_SENDER_MAIN, NPC_3v3_ACTION_JOIN_QUEUE_ARENA_UNRATED);
+        AddGossipItemFor(player, GOSSIP_ICON_INTERACT_1, "|TInterface/ICONS/Achievement_Arena_3v3_5:30:30:-18:0|t Queue 3v3soloQ (UnRated)\n", GOSSIP_SENDER_MAIN, NPC_3v3_ACTION_JOIN_QUEUE_ARENA_UNRATED);
 
     if (!player->GetArenaTeamId(ARENA_SLOT_SOLO_3v3))
     {
@@ -63,20 +63,20 @@ bool NpcSolo3v3::OnGossipHello(Player* player, Creature* creature)
         if (player->IsPvP())
             cost = 0;
 
-        AddGossipItemFor(player, GOSSIP_ICON_INTERACT_1, "|TInterface/ICONS/Achievement_Arena_2v2_7:30|t  Create new Solo arena team", GOSSIP_SENDER_MAIN, NPC_3v3_ACTION_CREATE_ARENA_TEAM, "Create new solo arena team?", cost, false);
+        AddGossipItemFor(player, GOSSIP_ICON_INTERACT_1, "|TInterface/ICONS/Achievement_Arena_2v2_7:30:30:-18:0|t  Create new Solo arena team", GOSSIP_SENDER_MAIN, NPC_3v3_ACTION_CREATE_ARENA_TEAM, "Create new solo arena team?", cost, false);
     }
     else
     {
         if (!player->InBattlegroundQueueForBattlegroundQueueType((BattlegroundQueueTypeId)BATTLEGROUND_QUEUE_3v3_SOLO))
         {
-            AddGossipItemFor(player, GOSSIP_ICON_INTERACT_1, "|TInterface/ICONS/Achievement_Arena_3v3_5:30|t Queue up for 3vs3 Arena Solo (Rated)\n", GOSSIP_SENDER_MAIN, NPC_3v3_ACTION_JOIN_QUEUE_ARENA_RATED);
-            AddGossipItemFor(player, GOSSIP_ICON_CHAT, "|TInterface/ICONS/Achievement_Arena_2v2_7:30|t Disband Arena team", GOSSIP_SENDER_MAIN, NPC_3v3_ACTION_DISBAND_ARENATEAM, "Are you sure?", 0, false);
+            AddGossipItemFor(player, GOSSIP_ICON_INTERACT_1, "|TInterface/ICONS/Achievement_Arena_3v3_5:30:30:-18:0|t Queue 3v3soloQ (Rated)\n", GOSSIP_SENDER_MAIN, NPC_3v3_ACTION_JOIN_QUEUE_ARENA_RATED);
+            AddGossipItemFor(player, GOSSIP_ICON_DOT, "|TInterface/ICONS/Achievement_Arena_2v2_7:30:30:-18:0|t Disband Arena team", GOSSIP_SENDER_MAIN, NPC_3v3_ACTION_DISBAND_ARENATEAM, "Are you sure?", 0, false);
         }
 
-        AddGossipItemFor(player, GOSSIP_ICON_CHAT, "|TInterface/ICONS/INV_Misc_Coin_01:30|t Show statistics", GOSSIP_SENDER_MAIN, NPC_3v3_ACTION_GET_STATISTICS);
+        AddGossipItemFor(player, GOSSIP_ICON_DOT, "|TInterface/ICONS/INV_Misc_Coin_01:30:30:-18:0|t Show statistics", GOSSIP_SENDER_MAIN, NPC_3v3_ACTION_GET_STATISTICS);
     }
 
-    AddGossipItemFor(player, GOSSIP_ICON_CHAT, "|TInterface/ICONS/INV_Misc_Coin_03:30|t How to Use NPC?", GOSSIP_SENDER_MAIN, NPC_3v3_ACTION_SCRIPT_INFO);
+    AddGossipItemFor(player, GOSSIP_ICON_CHAT, "|TInterface/ICONS/inv_misc_questionmark:30:30:-20:0|t Help", GOSSIP_SENDER_MAIN, NPC_3v3_ACTION_SCRIPT_INFO);
 
     SendGossipMenuFor(player, 60015, creature->GetGUID());
 
@@ -197,14 +197,19 @@ bool NpcSolo3v3::OnGossipSelect(Player* player, Creature* creature, uint32 /*sen
 
         case NPC_3v3_ACTION_SCRIPT_INFO:
         {
-            AddGossipItemFor(player, GOSSIP_ICON_CHAT, "Click on Create new 3v3 SoloQ Arena team", GOSSIP_SENDER_MAIN, action);
-            AddGossipItemFor(player, GOSSIP_ICON_CHAT, "Join 3v3 SoloQ Arena and ready!", GOSSIP_SENDER_MAIN, action);
-            AddGossipItemFor(player, GOSSIP_ICON_CHAT, "Enjoy!", GOSSIP_SENDER_MAIN, action);
-            AddGossipItemFor(player, GOSSIP_ICON_CHAT, "<- Back", GOSSIP_SENDER_MAIN, 7);
-            SendGossipMenuFor(player, 68, creature->GetGUID());
+
+            AddGossipItemFor(player, GOSSIP_ICON_CHAT, "<- Back", GOSSIP_SENDER_MAIN, NPC_3v3_ACTION_MAIN_MENU);
+            SendGossipMenuFor(player, NPC_TEXT_3v3, creature->GetGUID());
             return true;
         }
         break;
+
+        case NPC_3v3_ACTION_MAIN_MENU:
+        {
+            OnGossipHello(player, creature);
+            return true;
+        }
+
     }
 
     OnGossipHello(player, creature);
