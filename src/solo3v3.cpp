@@ -102,7 +102,7 @@ void Solo3v3::CountAsLoss(Player* player, bool isInProgress)
 void Solo3v3::CleanUp3v3SoloQ(Battleground* bg)
 {
     // Cleanup temp arena teams for solo 3v3
-    if (bg->isArena() && bg->isRated() && bg->GetArenaType() == ARENA_TYPE_3v3_SOLO)
+    if (bg->isArena() && bg->GetArenaType() == ARENA_TYPE_3v3_SOLO)
     {
         ArenaTeam* tempAlliArenaTeam = sArenaTeamMgr->GetArenaTeamById(bg->GetArenaTeamIdForTeam(TEAM_ALLIANCE));
         ArenaTeam* tempHordeArenaTeam = sArenaTeamMgr->GetArenaTeamById(bg->GetArenaTeamIdForTeam(TEAM_HORDE));
@@ -133,7 +133,7 @@ void Solo3v3::CheckStartSolo3v3Arena(Battleground* bg)
         if (!player)
             continue;
 
-        // Fix crash with Arena Replay module
+        // prevent crash with Arena Replay module
         if (player->IsSpectator())
             return;
 
@@ -165,9 +165,12 @@ bool Solo3v3::CheckSolo3v3Arena(BattlegroundQueue* queue, BattlegroundBracketId 
     queue->m_SelectionPools[TEAM_ALLIANCE].Init();
     queue->m_SelectionPools[TEAM_HORDE].Init();
 
-    uint32 MinPlayersPerTeam = 3;
+    uint32 MinPlayersPerTeam = sBattlegroundMgr->isArenaTesting() ? 1 : 3;
 
     bool filterTalents = sConfigMgr->GetOption<bool>("Solo.3v3.FilterTalents", false);
+
+    uint8 factionGroupTypeAlliance =  isRated ? BG_QUEUE_PREMADE_ALLIANCE : BG_QUEUE_NORMAL_ALLIANCE;
+    uint8 factionGroupTypeHorde = isRated ? BG_QUEUE_PREMADE_HORDE : BG_QUEUE_NORMAL_HORDE;
 
     for (int teamId = 0; teamId < 2; teamId++) // BG_QUEUE_PREMADE_ALLIANCE and BG_QUEUE_PREMADE_HORDE
     {
@@ -194,7 +197,7 @@ bool Solo3v3::CheckSolo3v3Arena(BattlegroundQueue* queue, BattlegroundBracketId 
                     return false;
 
                 Solo3v3TalentCat playerSlotIndex;
-                if (sConfigMgr->GetOption<bool>("Solo.3v3.FilterTalents", false))
+                if (filterTalents)
                     playerSlotIndex = GetTalentCatForSolo3v3(plr);
                 else
                     playerSlotIndex = GetFirstAvailableSlot(soloTeam);
@@ -209,9 +212,9 @@ bool Solo3v3::CheckSolo3v3Arena(BattlegroundQueue* queue, BattlegroundBracketId 
                         if ((*itr)->teamId != TEAM_ALLIANCE) // move to other team
                         {
                             (*itr)->teamId = TEAM_ALLIANCE;
-                            (*itr)->GroupType = BG_QUEUE_PREMADE_ALLIANCE;
-                            queue->m_QueuedGroups[bracket_id][BG_QUEUE_PREMADE_ALLIANCE].push_front((*itr));
-                            itr = queue->m_QueuedGroups[bracket_id][BG_QUEUE_PREMADE_HORDE].erase(itr);
+                            (*itr)->GroupType = factionGroupTypeAlliance;
+                            queue->m_QueuedGroups[bracket_id][factionGroupTypeAlliance].push_front((*itr));
+                            itr = queue->m_QueuedGroups[bracket_id][factionGroupTypeHorde].erase(itr);
                             return CheckSolo3v3Arena(queue, bracket_id, isRated);
                         }
                     }
@@ -225,9 +228,9 @@ bool Solo3v3::CheckSolo3v3Arena(BattlegroundQueue* queue, BattlegroundBracketId 
                         if ((*itr)->teamId != TEAM_HORDE) // move to other team
                         {
                             (*itr)->teamId = TEAM_HORDE;
-                            (*itr)->GroupType = BG_QUEUE_PREMADE_HORDE;
-                            queue->m_QueuedGroups[bracket_id][BG_QUEUE_PREMADE_HORDE].push_front((*itr));
-                            itr = queue->m_QueuedGroups[bracket_id][BG_QUEUE_PREMADE_ALLIANCE].erase(itr);
+                            (*itr)->GroupType = factionGroupTypeHorde;
+                            queue->m_QueuedGroups[bracket_id][factionGroupTypeHorde].push_front((*itr));
+                            itr = queue->m_QueuedGroups[bracket_id][factionGroupTypeAlliance].erase(itr);
                             return CheckSolo3v3Arena(queue, bracket_id, isRated);
                         }
                     }
