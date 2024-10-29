@@ -638,7 +638,13 @@ void Team3v3arena::OnGetArenaPoints(ArenaTeam* at, float& points)
 {
     if (at->GetType() == ARENA_TYPE_3v3_SOLO)
     {
-        points *= sConfigMgr->GetOption<float>("Solo.3v3.ArenaPointsMulti", 0.8f);
+        const auto Members = at->GetMembers();
+        uint8 playerLevel = sCharacterCache->GetCharacterLevelByGuid(Members.front().Guid);
+
+        if (playerLevel >= sConfigMgr->GetOption<uint32>("Solo.3v3.ArenaPointsMinLevel", 70))
+            points *= sConfigMgr->GetOption<float>("Solo.3v3.ArenaPointsMulti", 0.8f);
+        else
+            points *= 0;
     }
 }
 
