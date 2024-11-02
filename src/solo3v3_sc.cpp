@@ -16,6 +16,14 @@
  */
 
 #include "solo3v3_sc.h"
+#include <unordered_map>
+
+struct ArenaTeamsRating {
+    uint32 allianceRating;
+    uint32 hordeRating;
+    uint8 playersCount = 0;
+};
+std::unordered_map<uint32, ArenaTeamsRating> bgArenaTeamsRating;
 
 void NpcSolo3v3::Initialize()
 {
@@ -511,8 +519,14 @@ void Solo3v3BG::OnQueueUpdate(BattlegroundQueue* queue, uint32 /*diff*/, Battleg
         arena->SetArenaTeamIdForTeam(TEAM_ALLIANCE, arenaTeams[TEAM_ALLIANCE]->GetId());
         arena->SetArenaTeamIdForTeam(TEAM_HORDE, arenaTeams[TEAM_HORDE]->GetId());
 
-        oldTeamRatingAlliance = arenaTeams[TEAM_ALLIANCE]->GetStats().Rating;
-        oldTeamRatingHorde = arenaTeams[TEAM_HORDE]->GetStats().Rating;
+        if (isRated) {
+            ArenaTeamsRating arenaTeamsRating;
+
+            arenaTeamsRating.allianceRating = arenaTeams[TEAM_ALLIANCE]->GetStats().Rating;
+            arenaTeamsRating.hordeRating = arenaTeams[TEAM_HORDE]->GetStats().Rating;
+
+            bgArenaTeamsRating[arena->GetInstanceID()] = arenaTeamsRating;
+        }
 
         // Set matchmaker rating for calculating rating-modifier on EndBattleground (when a team has won/lost)
         arena->SetArenaMatchmakerRating(TEAM_ALLIANCE, sSolo->GetAverageMMR(arenaTeams[TEAM_ALLIANCE]));
@@ -551,15 +565,17 @@ void Solo3v3BG::OnBattlegroundEndReward(Battleground* bg, Player* player, TeamId
         int32 ratingModifier;
         int32 oldTeamRating;
 
+        uint32 oldTeamRatingAlliance = bgArenaTeamsRating[bg->GetInstanceID()].allianceRating;
+        uint32 oldTeamRatingHorde = bgArenaTeamsRating[bg->GetInstanceID()].hordeRating;
+
+        bgArenaTeamsRating[bg->GetInstanceID()].playersCount += 1;
+
         TeamId bgTeamId = player->GetBgTeamId();
         const bool isPlayerWinning = bgTeamId == winnerTeamId;
         if (isPlayerWinning) {
             ArenaTeam* winnerArenaTeam = sArenaTeamMgr->GetArenaTeamById(bg->GetArenaTeamIdForTeam(winnerTeamId == TEAM_NEUTRAL ? TEAM_HORDE : winnerTeamId));
             oldTeamRating = winnerTeamId == TEAM_HORDE ? oldTeamRatingHorde : oldTeamRatingAlliance;
             ratingModifier = int32(winnerArenaTeam->GetRating()) - oldTeamRating;
-
-            atStats.SeasonWins += 1;
-            atStats.WeekWins += 1;
         } else {
             ArenaTeam* loserArenaTeam  = sArenaTeamMgr->GetArenaTeamById(bg->GetArenaTeamIdForTeam(winnerTeamId == TEAM_NEUTRAL ? TEAM_ALLIANCE : bg->GetOtherTeamId(winnerTeamId)));
             oldTeamRating = winnerTeamId != TEAM_HORDE ? oldTeamRatingHorde : oldTeamRatingAlliance;
@@ -570,9 +586,6 @@ void Solo3v3BG::OnBattlegroundEndReward(Battleground* bg, Player* player, TeamId
             atStats.Rating = 0;
         else
             atStats.Rating += ratingModifier;
-
-        atStats.SeasonGames += 1;
-        atStats.WeekGames += 1;
 
         // Update team's rank, start with rank 1 and increase until no team with more rating was found
         atStats.Rank = 1;
@@ -587,12 +600,12 @@ void Solo3v3BG::OnBattlegroundEndReward(Battleground* bg, Player* player, TeamId
             if (itr->Guid == player->GetGUID())
             {
                 itr->PersonalRating = atStats.Rating;
-                itr->WeekWins = atStats.WeekWins;
-                itr->SeasonWins = atStats.SeasonWins;
-                itr->WeekGames = atStats.WeekGames;
-                itr->SeasonGames = atStats.SeasonGames;
+                itr->WeekGames += 1;
+                itr->SeasonGames += 1;
 
                 if (isPlayerWinning) {
+                    itr->WeekWins += 1;
+                    itr->SeasonWins += 1;
                     // itr->MatchMakerRating = bg->GetArenaMatchmakerRating(winnerTeamId);
                     itr->MatchMakerRating += ratingModifier;
                     itr->MaxMMR = std::max(itr->MaxMMR, itr->MatchMakerRating);
@@ -613,6 +626,10 @@ void Solo3v3BG::OnBattlegroundEndReward(Battleground* bg, Player* player, TeamId
         plrArenaTeam->SetArenaTeamStats(atStats);
         plrArenaTeam->NotifyStatsChanged();
         plrArenaTeam->SaveToDB(true);
+
+        // if all the players rating have been processed, delete the stored bg rating informations
+        if (bgArenaTeamsRating[bg->GetInstanceID()].playersCount == bg->GetPlayersSize())
+            bgArenaTeamsRating.erase(bg->GetInstanceID());
     }
 }
 

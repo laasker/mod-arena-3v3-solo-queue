@@ -66,9 +66,6 @@ class Solo3v3BG : public AllBattlegroundScript
 public:
     Solo3v3BG() : AllBattlegroundScript("Solo3v3_BG") {}
 
-    uint32 oldTeamRatingAlliance;
-    uint32 oldTeamRatingHorde;
-
     void OnQueueUpdate(BattlegroundQueue* queue, uint32 /*diff*/, BattlegroundTypeId bgTypeId, BattlegroundBracketId bracket_id, uint8 arenaType, bool isRated, uint32 /*arenaRatedTeamId*/) override;
     bool OnQueueUpdateValidity(BattlegroundQueue* /* queue */, uint32 /*diff*/, BattlegroundTypeId /* bgTypeId */, BattlegroundBracketId /* bracket_id */, uint8 arenaType, bool /* isRated */, uint32 /*arenaRatedTeamId*/) override;
     void OnBattlegroundDestroy(Battleground* bg) override;
