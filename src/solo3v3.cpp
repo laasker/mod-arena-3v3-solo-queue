@@ -24,6 +24,12 @@
 #include "Chat.h"
 #include "DisableMgr.h"
 
+uint32 ARENA_TYPE_3v3_SOLO = 4;
+uint32 ARENA_TEAM_SOLO_3v3 = 4;
+uint32 ARENA_SLOT_SOLO_3v3 = 4;
+uint32 BATTLEGROUND_QUEUE_3v3_SOLO = 12;
+BattlegroundQueueTypeId bgQueueTypeId = (BattlegroundQueueTypeId)12;
+
 Solo3v3* Solo3v3::instance()
 {
     static Solo3v3 instance;

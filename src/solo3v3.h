@@ -27,11 +27,11 @@
 constexpr uint32 BATTLEGROUND_QUEUE_1v1 = 11;
 
 // custom 3v3 Arena solo
-constexpr uint32 ARENA_TYPE_3v3_SOLO = 4;
-constexpr uint32 ARENA_TEAM_SOLO_3v3 = 4;
-constexpr uint32 ARENA_SLOT_SOLO_3v3 = 4;
-constexpr uint32 BATTLEGROUND_QUEUE_3v3_SOLO = 12;
-constexpr BattlegroundQueueTypeId bgQueueTypeId = (BattlegroundQueueTypeId)((int) BATTLEGROUND_QUEUE_3v3_SOLO);
+extern uint32 ARENA_TYPE_3v3_SOLO;
+extern uint32 ARENA_TEAM_SOLO_3v3;
+extern uint32 ARENA_SLOT_SOLO_3v3;
+extern uint32 BATTLEGROUND_QUEUE_3v3_SOLO;
+extern BattlegroundQueueTypeId bgQueueTypeId;
 
 const uint32 FORBIDDEN_TALENTS_IN_1V1_ARENA[] =
 {
