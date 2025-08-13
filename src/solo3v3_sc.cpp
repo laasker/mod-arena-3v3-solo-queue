@@ -804,6 +804,23 @@ void PlayerScript3v3Arena::OnPlayerGetMaxPersonalArenaRatingRequirement(const Pl
         return;
     }
 
+    uint32 max_personal_rating = 0;
+    for (uint8 i = minslot; i < MAX_ARENA_SLOT; ++i)
+    {
+        if (i == 2 && !sConfigMgr->GetOption<bool>("Solo.3v3.VendorRating", true))
+            continue;
+
+        if (ArenaTeam* at = sArenaTeamMgr->GetArenaTeamById(player->GetArenaTeamId(i)))
+        {
+            uint32 p_rating = player->GetArenaPersonalRating(i);
+            uint32 t_rating = at->GetRating();
+            uint32 min_rating = std::min(p_rating, t_rating);
+
+            if (max_personal_rating < min_rating)
+                max_personal_rating = min_rating;
+        }
+    }
+
     if (minslot < 6)
     {
         if (ArenaTeam* at = sArenaTeamMgr->GetArenaTeamByCaptain(player->GetGUID(), ARENA_TYPE_3v3_SOLO))
