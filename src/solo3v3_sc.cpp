@@ -846,7 +846,7 @@ bool PlayerScript3v3Arena::OnPlayerNotSetArenaTeamInfoField(Player* player, uint
 
     if (slot == ARENA_SLOT_SOLO_3v3)
     {
-        return false;
+        return sConfigMgr->GetOption<bool>("Solo.3v3.ShowTeamInfo", true);
     }
 
     return true;

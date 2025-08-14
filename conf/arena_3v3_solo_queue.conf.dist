@@ -77,8 +77,40 @@ Solo.3v3.VendorRating = 0
 
 Solo.3v3.ShowMessageOnLogin = 0
 
+#
+#    Solo.3v3.ShowTeamInfo
+#        Description: If true, players can see team information in the PvP panel (and when inspecting other players)
+
+Solo.3v3.ShowTeamInfo = 1
+
+
+#
+#    Solo.3v3.ArenaType
+#        Default: 4
+#
 
 Solo.3v3.ArenaType = 4
-Solo.3v3.ArenaTeamId = 4
-Solo.3v3.ArenaSlot = 4
+
+#
+#    Solo.3v3.ArenaTeamId
+#        Description: Be aware that, after changing this value, previously soloQ teams will still exist with the old id (eg: you created a team with id 5(5v5), and then you change the id to 3(3v3), you will be able to keep the previous team and create a new one)
+#        Default: 4
+#        5 = ARENA_TEAM_5v5
+#
+
+Solo.3v3.ArenaTeamId = 5
+
+#
+#    Solo.3v3.BattlegroundQueueId
+#        Default: 4
+#        2 = ARENA_SLOT_5v5
+#
+
+Solo.3v3.ArenaSlot = 2
+
+#
+#    Solo.3v3.BattlegroundQueueId
+#        Default: 4
+
 Solo.3v3.BattlegroundQueueId = 12
+
