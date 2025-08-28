@@ -50,35 +50,35 @@ const uint32 SOLO_3V3_TALENTS_MELEE[] =
 {
     383, // PaladinProtection
     163, // WarriorProtection
-    161,
-    182,
-    398,
-    164,
-    181,
-    263,
-    281,
-    399,
-    183,
-    381,
-    400,
+    161, // Arms Warr
+    182, // Assa Rogue
+    398, // Blood DK
+    164, // Fury
+    181, // Combat
+    263, // Enhancement
+    281, // Feral
+    399, // Frost DK
+    183, // Subtetly
+    381, // Retri Pala
+    400, // Unholy
     0 // End
 };
 
 // Mage, Hunter, Warlock etc.
 const uint32 SOLO_3V3_TALENTS_RANGE[] =
 {
-    81,
-    261,
-    283,
-    302,
-    361,
-    41,
-    303,
-    363,
-    61,
-    203,
-    301,
-    362,
+    81,  // Arcane mage
+    261, // Elemental Shaman
+    283, // Balance
+    302, // Affliction
+    361, // Beast Mastery
+    41,  // Fire Mage
+    303, // Demon Lock
+    363, // MM hunter
+    61 , // Frost Mage
+    203, // Shadow Priest
+    301, // Destruction Lock
+    362, // Survival Hunter
     0 // End
 };
 
