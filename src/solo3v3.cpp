@@ -165,21 +165,53 @@ void Solo3v3::CheckStartSolo3v3Arena(Battleground* bg)
 
 bool Solo3v3::CheckSolo3v3Arena(BattlegroundQueue* queue, BattlegroundBracketId bracket_id, bool isRated)
 {
-    bool soloTeam[BG_TEAMS_COUNT][MAX_TALENT_CAT]; // 2 teams and each team 3 players - set to true when slot is taken
-
-    for (int i = 0; i < BG_TEAMS_COUNT; i++)
-        for (int j = 0; j < MAX_TALENT_CAT; j++)
-            soloTeam[i][j] = false; // default false = slot not taken
-
     queue->m_SelectionPools[TEAM_ALLIANCE].Init();
     queue->m_SelectionPools[TEAM_HORDE].Init();
 
     uint32 MinPlayersPerTeam = sBattlegroundMgr->isArenaTesting() ? 1 : 3;
+    bool MeleeCasterHealer = sConfigMgr->GetOption<bool>("Solo.3v3.MeleeCasterHealer", false);
 
-    bool filterTalents = sConfigMgr->GetOption<bool>("Solo.3v3.FilterTalents", false);
-
-    uint8 factionGroupTypeAlliance =  isRated ? BG_QUEUE_PREMADE_ALLIANCE : BG_QUEUE_NORMAL_ALLIANCE;
+    uint8 factionGroupTypeAlliance = isRated ? BG_QUEUE_PREMADE_ALLIANCE : BG_QUEUE_NORMAL_ALLIANCE;
     uint8 factionGroupTypeHorde = isRated ? BG_QUEUE_PREMADE_HORDE : BG_QUEUE_NORMAL_HORDE;
+
+    struct TeamComposition
+    {
+        int healerCount = 0, meleeCount = 0, rangedCount = 0;
+        int getTotalPlayers() const { return healerCount + meleeCount + rangedCount; }
+        int getTotalDPS() const { return meleeCount + rangedCount; }
+
+        bool canAddPlayer(Solo3v3TalentCat role, bool MeleeCasterHealer) const
+        {
+            if (getTotalPlayers() >= 3) return false;
+
+            if (MeleeCasterHealer)
+                if (role == HEALER && healerCount >= 1) return false;
+                if (role == MELEE && meleeCount >= 1) return false;
+                if (role == RANGE && rangedCount >= 1) return false;
+            else 
+                if (role == HEALER && healerCount >= 1) return false;
+                if (role != HEALER && getTotalDPS() >= 2) return false;
+
+            return true;
+        }
+
+        void addPlayer(Solo3v3TalentCat role)
+        {
+            if (role == HEALER) healerCount++;
+            else if (role == MELEE) meleeCount++;
+            else if (role == RANGE) rangedCount++;
+        }
+
+        bool isValidComposition(bool MeleeCasterHealer) const
+        {
+            if (MeleeCasterHealer)
+                return healerCount == 1 && meleeCount == 1 && rangedCount == 1;
+            else
+                return healerCount == 1 && getTotalDPS() == 2;
+        }
+    };
+
+    TeamComposition teams[2]; // 0 = Alliance, 1 = Horde
 
     for (int teamId = 0; teamId < 2; teamId++) // BG_QUEUE_PREMADE_ALLIANCE and BG_QUEUE_PREMADE_HORDE
     {
@@ -199,24 +231,48 @@ bool Solo3v3::CheckSolo3v3Arena(BattlegroundQueue* queue, BattlegroundBracketId 
                 if (!plr)
                     continue;
 
-                if (!filterTalents && queue->m_SelectionPools[TEAM_ALLIANCE].GetPlayerCount() + queue->m_SelectionPools[TEAM_HORDE].GetPlayerCount() == MinPlayersPerTeam * 2)
-                    return true;
+                Solo3v3TalentCat playerRole = GetTalentCatForSolo3v3(plr);
 
-                if (!plr)
-                    return false;
+                int targetTeam = -1;
 
-                Solo3v3TalentCat playerSlotIndex;
-                if (filterTalents)
-                    playerSlotIndex = GetTalentCatForSolo3v3(plr);
+                bool allianceCanAdd = teams[TEAM_ALLIANCE].getTotalPlayers() < MinPlayersPerTeam && teams[TEAM_ALLIANCE].canAddPlayer(playerRole, MeleeCasterHealer);
+                bool hordeCanAdd = teams[TEAM_HORDE].getTotalPlayers() < MinPlayersPerTeam && teams[TEAM_HORDE].canAddPlayer(playerRole, MeleeCasterHealer);
+
+                if (allianceCanAdd && hordeCanAdd)
+                    targetTeam = urand(0, 1) == 0 ? TEAM_ALLIANCE : TEAM_HORDE; // add players to random team
+                    // balance teams (se tiver 2v1, vai ficar 2v2, se tiver 1v1, 50% de chance de ir pra qualquer time)
+                    /*int allianceCount = teams[TEAM_ALLIANCE].getTotalPlayers();
+                    int hordeCount = teams[TEAM_HORDE].getTotalPlayers();
+                    if (allianceCount == hordeCount) // 1v1, 2v2
+                    {
+                        // Teams are balanced, pure random choice
+                        targetTeam = urand(0, 1) == 0 ? TEAM_ALLIANCE : TEAM_HORDE;
+                    }
+                    else // 0v1, 1v2, 3v2
+                    {
+                        // Teams are unbalanced, consider balance priority
+                        int smallerTeam = (allianceCount < hordeCount) ? TEAM_ALLIANCE : TEAM_HORDE;
+
+                        if (urand(0, 100) < 50) // 50% de chance
+                            targetTeam = smallerTeam;
+                        else
+                            targetTeam = urand(0, 1) == 0 ? TEAM_ALLIANCE : TEAM_HORDE;
+                    }*/
+                //else if (allianceCanAdd)
+                //    targetTeam = TEAM_ALLIANCE;
+                //else if (hordeCanAdd)
+                //    targetTeam = TEAM_HORDE;
                 else
-                    playerSlotIndex = GetFirstAvailableSlot(soloTeam);
+                    targetTeam = allianceCanAdd ? TEAM_ALLIANCE : TEAM_HORDE; // se um team tiver cheio, adiciona no outro (se possivel)
 
-                // is slot free in alliance team?
-                if ((filterTalents && soloTeam[TEAM_ALLIANCE][playerSlotIndex] == false) || (!filterTalents && queue->m_SelectionPools[TEAM_ALLIANCE].GetPlayerCount() != MinPlayersPerTeam))
+                if (targetTeam == -1)
+                    continue;
+
+                if (targetTeam == TEAM_ALLIANCE)
                 {
                     if (queue->m_SelectionPools[TEAM_ALLIANCE].AddGroup((*itr), MinPlayersPerTeam)) // added successfully?
                     {
-                        soloTeam[TEAM_ALLIANCE][playerSlotIndex] = true; // okay take this slot
+                        teams[TEAM_ALLIANCE].addPlayer(playerRole);
 
                         if ((*itr)->teamId != TEAM_ALLIANCE) // move to other team
                         {
@@ -228,11 +284,11 @@ bool Solo3v3::CheckSolo3v3Arena(BattlegroundQueue* queue, BattlegroundBracketId 
                         }
                     }
                 }
-                else if ((filterTalents && soloTeam[TEAM_HORDE][playerSlotIndex] == false) || !filterTalents) // nope? and in horde team?
+                else // targetTeam == TEAM_HORDE
                 {
                     if (queue->m_SelectionPools[TEAM_HORDE].AddGroup((*itr), MinPlayersPerTeam))
                     {
-                        soloTeam[TEAM_HORDE][playerSlotIndex] = true;
+                        teams[TEAM_HORDE].addPlayer(playerRole);
 
                         if ((*itr)->teamId != TEAM_HORDE) // move to other team
                         {
@@ -248,13 +304,7 @@ bool Solo3v3::CheckSolo3v3Arena(BattlegroundQueue* queue, BattlegroundBracketId 
         }
     }
 
-    uint32 countAll = 0;
-    for (int i = 0; i < BG_TEAMS_COUNT; i++)
-        for (int j = 0; j < MAX_TALENT_CAT; j++)
-            if (soloTeam[i][j])
-                countAll++;
-
-    return countAll == MinPlayersPerTeam * 2 || (!filterTalents && queue->m_SelectionPools[TEAM_ALLIANCE].GetPlayerCount() + queue->m_SelectionPools[TEAM_HORDE].GetPlayerCount() == MinPlayersPerTeam * 2);
+    return teams[TEAM_ALLIANCE].isValidComposition(MeleeCasterHealer) && teams[TEAM_HORDE].isValidComposition(MeleeCasterHealer);
 }
 
 void Solo3v3::CreateTempArenaTeamForQueue(BattlegroundQueue* queue, ArenaTeam* arenaTeams[])
@@ -382,17 +432,4 @@ Solo3v3TalentCat Solo3v3::GetTalentCatForSolo3v3(Player* player)
     }
 
     return talCat;
-}
-
-Solo3v3TalentCat Solo3v3::GetFirstAvailableSlot(bool soloTeam[][MAX_TALENT_CAT]) {
-    if (!soloTeam[0][MELEE] || !soloTeam[1][MELEE])
-        return MELEE;
-
-    if (!soloTeam[0][RANGE] || !soloTeam[1][RANGE])
-        return RANGE;
-
-    if (!soloTeam[0][HEALER] || !soloTeam[1][HEALER])
-        return HEALER;
-
-    return MELEE;
 }
