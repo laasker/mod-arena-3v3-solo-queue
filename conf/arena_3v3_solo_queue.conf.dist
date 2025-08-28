@@ -110,7 +110,8 @@ Solo.3v3.ArenaSlot = 2
 
 #
 #    Solo.3v3.BattlegroundQueueId
-#        Default: 4
+#        Default: 12
+#        9 = BATTLEGROUND_QUEUE_3v3
 
 Solo.3v3.BattlegroundQueueId = 12
 

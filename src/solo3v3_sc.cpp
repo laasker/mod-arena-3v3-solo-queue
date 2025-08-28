@@ -636,6 +636,17 @@ void Solo3v3BG::OnBattlegroundEndReward(Battleground* bg, Player* player, TeamId
         // if all the players rating have been processed, delete the stored bg rating informations
         if (bgArenaTeamsRating[bg->GetInstanceID()].playersCount == bg->GetPlayersSize())
             bgArenaTeamsRating.erase(bg->GetInstanceID());
+
+        // kick player -- saving alt tab time for testing
+        Battleground::BattlegroundPlayerMap const& pl = bg->GetPlayers();
+        for (Battleground::BattlegroundPlayerMap::const_iterator itr = pl.begin(); itr != pl.end(); ++itr)
+        {
+            if (!player || player->IsSpectator())
+                continue;
+
+            if (Player* plr = ObjectAccessor::FindPlayer(itr->first))
+                plr->LeaveBattleground();
+        }
     }
 }
 
