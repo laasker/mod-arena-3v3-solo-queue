@@ -771,25 +771,15 @@ void PlayerScript3v3Arena::OnPlayerBattlegroundDesertion(Player* player, const B
             }
             break;
 
-            /*
-            case ARENA_DESERTION_TYPE_LEAVE_QUEUE: // called if player uses macro to leave queue when it pops. /run AcceptBattlefieldPort(1, 0);
+        case ARENA_DESERTION_TYPE_LEAVE_QUEUE: // called if player uses macro to leave queue when it pops. /run AcceptBattlefieldPort(1, 0);
 
-                // I believe these are being called AFTER the player removes the queue, so we can't know his queue
-                if (player->IsInvitedForBattlegroundQueueType((BattlegroundQueueTypeId)BATTLEGROUND_QUEUE_3v3_SOLO))
-                {
-                    LOG_ERROR("solo3v3", "IsInvitedForBattlegroundQueueType BATTLEGROUND_QUEUE_3v3_SOLO");
-                    sSolo->CountAsLoss(player, false);
-
-                }
-                else if (player->InBattlegroundQueueForBattlegroundQueueType((BattlegroundQueueTypeId)BATTLEGROUND_QUEUE_3v3_SOLO))
-                {
-                    LOG_ERROR("solo3v3", "InBattlegroundQueueForBattlegroundQueueType BATTLEGROUND_QUEUE_3v3_SOLO");
-                }
-                else
-                {
-                    LOG_ERROR("solo3v3", "ARENA_DESERTION_TYPE_LEAVE_QUEUE - else");
-                }
-            */
+            if (player->IsInvitedForBattlegroundQueueType((BattlegroundQueueTypeId)BATTLEGROUND_QUEUE_3v3_SOLO))
+            {
+                if (sConfigMgr->GetOption<bool>("Solo.3v3.CastDeserterOnAfk", true) || sConfigMgr->GetOption<bool>("Solo.3v3.CastDeserterOnLeave", true))
+                    player->CastSpell(player, 26013, true);
+                sSolo->CountAsLoss(player, false);
+            }
+            break;
 
         default:
             break;
