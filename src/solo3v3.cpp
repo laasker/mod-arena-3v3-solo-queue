@@ -287,7 +287,7 @@ void Solo3v3::CreateTempArenaTeamForQueue(BattlegroundQueue* queue, ArenaTeam* a
         std::stringstream ssTeamName;
         ssTeamName << "Solo Team - " << (i + 1);
 
-        tempArenaTeam->CreateTempArenaTeam(playersList, ARENA_TYPE_3v3_SOLO, ssTeamName.str());
+        tempArenaTeam->CreateTempArenaTeam(playersList, ARENA_TEAM_SOLO_3v3, ssTeamName.str());
         sArenaTeamMgr->AddArenaTeam(tempArenaTeam);
         arenaTeams[i] = tempArenaTeam;
     }

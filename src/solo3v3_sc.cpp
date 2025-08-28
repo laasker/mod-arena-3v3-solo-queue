@@ -398,7 +398,7 @@ bool NpcSolo3v3::CreateArenateam(Player* player, Creature* /*creature*/)
     // Create arena team
     ArenaTeam* arenaTeam = new ArenaTeam();
 
-    if (!arenaTeam->Create(player->GetGUID(), uint8(ARENA_TYPE_3v3_SOLO), teamName.str(), 4283124816, 45, 4294242303, 5, 4294705149))
+    if (!arenaTeam->Create(player->GetGUID(), uint8(ARENA_TEAM_SOLO_3v3), teamName.str(), 4283124816, 45, 4294242303, 5, 4294705149))
     {
         delete arenaTeam;
         return false;
@@ -656,9 +656,12 @@ void ConfigLoader3v3Arena::OnAfterConfigLoad(bool /*Reload*/)
     BattlegroundMgr::ArenaTypeToQueue.emplace(ARENA_TYPE_3v3_SOLO, (BattlegroundQueueTypeId)BATTLEGROUND_QUEUE_3v3_SOLO);
 }
 
+// n parece ser necessario, testei sem isso aqui e funcionou normalmente, talvez é necessario para ganho de arena point ou algo do tipo
 void Team3v3arena::OnGetSlotByType(const uint32 type, uint8& slot)
 {
-    if (type == ARENA_TYPE_3v3_SOLO)
+    // importante!! (sem isso, os games ficam 1v1, 1v1, 1v1, em vez de 3v3) - talvez nao
+    // acho que é responsavel por retornar o erro 'Unknown arena team type 4 for some arena team' (arenateam.cpp). Apos deletar os times, parou de aparecer esse erro (usando type 4, team 5v5)
+    if (type == ARENA_TEAM_SOLO_3v3)
     {
         slot = ARENA_SLOT_SOLO_3v3;
     }
@@ -666,7 +669,7 @@ void Team3v3arena::OnGetSlotByType(const uint32 type, uint8& slot)
 
 void Team3v3arena::OnGetArenaPoints(ArenaTeam* at, float& points)
 {
-    if (at->GetType() == ARENA_TYPE_3v3_SOLO)
+    if (at->GetType() == ARENA_TEAM_SOLO_3v3)
     {
         const auto Members = at->GetMembers();
         uint8 playerLevel = sCharacterCache->GetCharacterLevelByGuid(Members.front().Guid);
@@ -678,16 +681,19 @@ void Team3v3arena::OnGetArenaPoints(ArenaTeam* at, float& points)
     }
 }
 
+// n parece ser necessario tbm
 void Team3v3arena::OnTypeIDToQueueID(const BattlegroundTypeId, const uint8 arenaType, uint32& _bgQueueTypeId)
 {
-    if (arenaType == ARENA_TYPE_3v3_SOLO)
+    if (arenaType == ARENA_TYPE_3v3_SOLO) 
     {
         _bgQueueTypeId = bgQueueTypeId;
     }
 }
 
-void Team3v3arena::OnQueueIdToArenaType(const BattlegroundQueueTypeId _bgQueueTypeId, uint8& arenaType)
+void Team3v3arena::OnQueueIdToArenaType(const BattlegroundQueueTypeId _bgQueueTypeId, uint8& arenaType) // n parece ser necessario tbm
 {
+    // esse hook ta spamando o tempo todo, mesmo fora da fila de solo3v3
+    //LOG_INFO("module", "Solo3v3 - OnQueueIdToArenaType.");
     if (_bgQueueTypeId == bgQueueTypeId)
     {
         arenaType = ARENA_TYPE_3v3_SOLO;
@@ -790,7 +796,7 @@ void PlayerScript3v3Arena::OnPlayerGetArenaPersonalRating(Player* player, uint8 
 {
     if (slot == ARENA_SLOT_SOLO_3v3)
     {
-        if (ArenaTeam* at = sArenaTeamMgr->GetArenaTeamByCaptain(player->GetGUID(), ARENA_TYPE_3v3_SOLO))
+        if (ArenaTeam* at = sArenaTeamMgr->GetArenaTeamByCaptain(player->GetGUID(), ARENA_TEAM_SOLO_3v3))
         {
             rating = at->GetRating();
         }
@@ -823,7 +829,7 @@ void PlayerScript3v3Arena::OnPlayerGetMaxPersonalArenaRatingRequirement(const Pl
 
     if (minslot < 6)
     {
-        if (ArenaTeam* at = sArenaTeamMgr->GetArenaTeamByCaptain(player->GetGUID(), ARENA_TYPE_3v3_SOLO))
+        if (ArenaTeam* at = sArenaTeamMgr->GetArenaTeamByCaptain(player->GetGUID(), ARENA_TEAM_SOLO_3v3))
         {
             maxArenaRating = std::max(at->GetRating(), maxArenaRating);
         }
@@ -836,7 +842,7 @@ void PlayerScript3v3Arena::OnPlayerGetArenaTeamId(Player* player, uint8 slot, ui
         return;
 
     if (slot == ARENA_SLOT_SOLO_3v3)
-        result = player->GetArenaTeamIdFromDB(player->GetGUID(), ARENA_TYPE_3v3_SOLO);
+        result = player->GetArenaTeamIdFromDB(player->GetGUID(), ARENA_TEAM_SOLO_3v3); // important!
 }
 
 bool PlayerScript3v3Arena::OnPlayerNotSetArenaTeamInfoField(Player* player, uint8 slot, ArenaTeamInfoType /* type */, uint32 /* value */)
