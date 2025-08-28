@@ -240,28 +240,6 @@ bool Solo3v3::CheckSolo3v3Arena(BattlegroundQueue* queue, BattlegroundBracketId 
 
                 if (allianceCanAdd && hordeCanAdd)
                     targetTeam = urand(0, 1) == 0 ? TEAM_ALLIANCE : TEAM_HORDE; // add players to random team
-                    // balance teams (se tiver 2v1, vai ficar 2v2, se tiver 1v1, 50% de chance de ir pra qualquer time)
-                    /*int allianceCount = teams[TEAM_ALLIANCE].getTotalPlayers();
-                    int hordeCount = teams[TEAM_HORDE].getTotalPlayers();
-                    if (allianceCount == hordeCount) // 1v1, 2v2
-                    {
-                        // Teams are balanced, pure random choice
-                        targetTeam = urand(0, 1) == 0 ? TEAM_ALLIANCE : TEAM_HORDE;
-                    }
-                    else // 0v1, 1v2, 3v2
-                    {
-                        // Teams are unbalanced, consider balance priority
-                        int smallerTeam = (allianceCount < hordeCount) ? TEAM_ALLIANCE : TEAM_HORDE;
-
-                        if (urand(0, 100) < 50) // 50% de chance
-                            targetTeam = smallerTeam;
-                        else
-                            targetTeam = urand(0, 1) == 0 ? TEAM_ALLIANCE : TEAM_HORDE;
-                    }*/
-                //else if (allianceCanAdd)
-                //    targetTeam = TEAM_ALLIANCE;
-                //else if (hordeCanAdd)
-                //    targetTeam = TEAM_HORDE;
                 else
                     targetTeam = allianceCanAdd ? TEAM_ALLIANCE : TEAM_HORDE; // se um team tiver cheio, adiciona no outro (se possivel)
 
@@ -335,7 +313,7 @@ void Solo3v3::CreateTempArenaTeamForQueue(BattlegroundQueue* queue, ArenaTeam* a
         }
 
         std::stringstream ssTeamName;
-        ssTeamName << "Solo Team - " << (i + 1);
+        ssTeamName << "3v3 Solo Team - " << (i + 1);
 
         tempArenaTeam->CreateTempArenaTeam(playersList, ARENA_TEAM_SOLO_3v3, ssTeamName.str());
         sArenaTeamMgr->AddArenaTeam(tempArenaTeam);
