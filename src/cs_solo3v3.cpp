@@ -21,7 +21,6 @@ public:
         {
             { "rated",       HandleQueueArena3v3Rated,         SEC_PLAYER,        Console::No },
             { "unrated",     HandleQueueArena3v3UnRated,       SEC_PLAYER,        Console::No },
-            { "stats",       HandleQueueArenaSolo3v3Stats,     SEC_PLAYER,        Console::No },
         };
 
         static ChatCommandTable SoloCommandTable =
@@ -83,84 +82,22 @@ public:
             return false;
         }
 
-        if (isRated)
+        if (!player->GetArenaTeamId(ARENA_SLOT_SOLO_3v3) && isRated)
         {
-            if (!player->GetArenaTeamId(ARENA_SLOT_SOLO_3v3))
-            {
-                uint32 cost = sConfigMgr->GetOption<uint32>("Solo.3v3.Cost", 1);
+            // create solo3v3 team if player doesn't have it
+            if (!SoloCommand.CreateArenateam(player, nullptr))
+                return false;
 
-                if (player->GetMoney() < cost)
-                {
-                    handler->PSendSysMessage("You need {} gold to create a Solo 3v3 arena team.", cost / GOLD);
-                    return false;
-                }
-
-                if (!SoloCommand.CreateArenateam(player, nullptr))
-                    return false;
-
-                player->ModifyMoney(-int32(cost));
-
-                handler->SendSysMessage("Solo 3v3 arena team created successfully. Use the command again to join the rated queue.");
-                return true;
-            }
+            handler->PSendSysMessage("Join again arena 3v3soloQ rated!");
         }
-
-        if (!SoloCommand.ArenaCheckFullEquipAndTalents(player))
-            return false;
-
-        if (SoloCommand.JoinQueueArena(player, nullptr, isRated))
-            handler->PSendSysMessage("You have joined the solo 3v3 arena queue {}.", isRated ? "rated" : "unrated");
-
-        return true;
-    }
-
-    static bool HandleQueueArenaSolo3v3Stats(ChatHandler* handler, const char* /*args*/)
-    {
-        Player* player = handler->GetSession()->GetPlayer();
-        if (!player)
-            return false;
-
-        uint32 teamId = player->GetArenaTeamId(ARENA_SLOT_SOLO_3v3);
-        if (!teamId)
-        {
-            handler->SendSysMessage("You are not in a Solo 3v3 arena team.");
-            return true;
-        }
-
-        ArenaTeam* at = sArenaTeamMgr->GetArenaTeamById(teamId);
-        if (!at)
-        {
-            handler->SendSysMessage("Solo 3v3 arena team not found.");
-            return true;
-        }
-
-        ArenaTeamStats const& stats = at->GetStats();
-
-        std::stringstream s;
-        s << "=== Solo 3v3 Statistics ===";
-        s << "\nRating: " << stats.Rating;
-        s << "\nPersonal Rating: " << player->GetArenaPersonalRating(ARENA_SLOT_SOLO_3v3);
-        s << "\nRank: " << stats.Rank;
-        s << "\nSeason Games: " << stats.SeasonGames;
-        s << "\nSeason Wins: " << stats.SeasonWins;
-        s << "\nWeek Games: " << stats.WeekGames;
-        s << "\nWeek Wins: " << stats.WeekWins;
-
-        handler->PSendSysMessage("{}", s.str().c_str());
-
-        // Query MMR from database
-        CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_MATCH_MAKER_RATING);
-        stmt->SetData(0, player->GetGUID().GetCounter());
-        stmt->SetData(1, ARENA_SLOT_SOLO_3v3);
-        PreparedQueryResult result = CharacterDatabase.Query(stmt);
-
-        uint16 matchMakerRating;
-        if (result)
-            matchMakerRating = (*result)[0].Get<uint16>();
         else
-            matchMakerRating = sWorld->getIntConfig(CONFIG_ARENA_START_MATCHMAKER_RATING);
+        {
+            if (!SoloCommand.ArenaCheckFullEquipAndTalents(player))
+                return false;
 
-        handler->PSendSysMessage("Solo MMR: {}", matchMakerRating);
+            if (SoloCommand.JoinQueueArena(player, nullptr, isRated))
+                handler->PSendSysMessage("You have joined the solo 3v3 arena queue {}.", isRated ? "rated" : "unrated");
+        }
 
         return true;
     }
@@ -233,6 +170,7 @@ public:
         return true;
     }
 };
+
 
 void AddSC_Solo_3v3_commandscript()
 {

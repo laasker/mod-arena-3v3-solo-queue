@@ -18,6 +18,7 @@
 void AddSC_Solo_3v3_Arena();
 void AddSC_Solo_3v3_commandscript();
 
+
 void Addmod_arena_3v3_solo_queueScripts()
 {
     AddSC_Solo_3v3_Arena();
