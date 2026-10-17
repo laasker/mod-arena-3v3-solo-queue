@@ -35,16 +35,6 @@ Solo.3v3.EnableTestingCommand = 1
 
 Solo.3v3.Replace5v5Achievements = 0
 
-
-#   Solo.3v3.FilterTalents
-#       Description: When enabled, the matchmaker will attempt to create more balanced teams by considering players' talent specializations.
-#                    It will try to avoid placing too many players of the same role (DPS, healer, tank) on the same team, which can lead
-#                    to more balanced and competitive matches. When disabled, the matchmaker will not consider talent specializations and may create unbalanced teams
-#       Default: 1 - (true)
-#                0 - (false)
-#
-Solo.3v3.FilterTalents = 1
-
 #
 #    Solo.3v3.MinGearScore
 #        Description: Minimum GearScore required.
@@ -65,6 +55,15 @@ Solo.3v3.MinAvgItemLevel = 0
 #        Default: 0 (disabled) 3 (Rare) 4 (Epic)
 #
 Solo.3v3.MinItemQuality = 0
+
+#   Solo.3v3.FilterTalents
+#       Description: When enabled, the matchmaker will attempt to create more balanced teams by considering players' talent specializations.
+#                    It will try to avoid placing too many players of the same role (DPS, healer, tank) on the same team, which can lead
+#                    to more balanced and competitive matches. When disabled, the matchmaker will not consider talent specializations and may create unbalanced teams
+#       Default: 1 - (true)
+#                0 - (false)
+#
+Solo.3v3.FilterTalents = 1
 
 #
 #    Solo.3v3.FilterTalents.AllDPSTimer
@@ -233,6 +232,35 @@ Solo.3v3.ArenaPointsMinLevel = 70
 Solo.3v3.VendorRating = 0
 
 Solo.3v3.ShowMessageOnLogin = 0
+
+# Arena identifiers used by the solo 3v3 queue.
+# These are read on worldserver startup. Changing them requires a restart.
+# Ensure custom arena types and queue IDs do not conflict with the core or other modules.
+# Changing ArenaTeamId or ArenaSlot does not migrate existing arena teams or saved MMR data.
+#
+#    Solo.3v3.ArenaType
+#        Default: 4
+
+Solo.3v3.ArenaType = 4
+
+#    Solo.3v3.ArenaTeamId
+#        Description: Arena team type stored in the character database (arena_team.type).
+#        Default: 4
+
+Solo.3v3.ArenaTeamId = 4
+
+#    Solo.3v3.ArenaSlot
+#        Description: Player arena team slot associated with the configured arena team type.
+#        Default: 2 (ARENA_SLOT_5v5; valid arena slots are 0, 1, and 2)
+
+Solo.3v3.ArenaSlot = 2
+
+#    Solo.3v3.BattlegroundQueueId
+#        Description: Custom queue ID. Keep it distinct from core and other module queues.
+#        Default: 12
+
+Solo.3v3.BattlegroundQueueId = 12
+
 
 #
 #    Solo.3v3.LeaverLog

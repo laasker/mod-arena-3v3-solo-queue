@@ -29,11 +29,11 @@
 constexpr uint32 BATTLEGROUND_QUEUE_1v1 = 11;
 
 // custom 3v3 Arena solo
-constexpr uint32 ARENA_TYPE_3v3_SOLO = 4;
-constexpr uint32 ARENA_TEAM_SOLO_3v3 = 4;
-constexpr uint32 ARENA_SLOT_SOLO_3v3 = 4;
-constexpr uint32 BATTLEGROUND_QUEUE_3v3_SOLO = 12;
-constexpr BattlegroundQueueTypeId bgQueueTypeId = (BattlegroundQueueTypeId)((int) BATTLEGROUND_QUEUE_3v3_SOLO);
+extern uint8 ARENA_TYPE_3v3_SOLO;
+extern uint8 ARENA_TEAM_SOLO_3v3;
+extern uint8 ARENA_SLOT_SOLO_3v3;
+extern uint32 BATTLEGROUND_QUEUE_3v3_SOLO;
+extern BattlegroundQueueTypeId bgQueueTypeId;
 
 constexpr uint32 SPELL_LAST_MAN_STANDING = 26549;
 
@@ -140,6 +140,7 @@ public:
     static Solo3v3* instance();
 
     void LoadConfig();
+    void LoadArenaIdConfig(bool reload);
 
     // The core loads member MMR only for 2v2/3v3/5v5 teams and falls back to its own
     // Arena.ArenaStartMatchmakerRating, so solo members are reloaded from their ARENA_SLOT_SOLO_3v3 row.

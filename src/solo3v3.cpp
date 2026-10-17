@@ -30,6 +30,52 @@
 #include "WorldSessionMgr.h"
 #include <algorithm>
 #include <functional>
+#include <limits>
+
+uint8 ARENA_TYPE_3v3_SOLO = 4;
+uint8 ARENA_TEAM_SOLO_3v3 = 4;
+uint8 ARENA_SLOT_SOLO_3v3 = 4;
+uint32 BATTLEGROUND_QUEUE_3v3_SOLO = 12;
+BattlegroundQueueTypeId bgQueueTypeId = static_cast<BattlegroundQueueTypeId>(BATTLEGROUND_QUEUE_3v3_SOLO);
+
+namespace
+{
+    bool arenaIdConfigurationLoaded = false;
+
+    bool IsValidArenaIdConfiguration(uint32 arenaType, uint32 arenaTeamType, uint32 arenaSlot, uint32 queueId)
+    {
+        if (!arenaType || arenaType > std::numeric_limits<uint8>::max()
+            || !arenaTeamType || arenaTeamType > std::numeric_limits<uint8>::max()
+            //|| arenaSlot > ARENA_SLOT_5v5
+            || !queueId || queueId >= MAX_BATTLEGROUND_QUEUE_TYPES)
+            return false;
+
+        if (BattlegroundMgr::ArenaTypeToQueue.find(arenaType) != BattlegroundMgr::ArenaTypeToQueue.end()
+            || BattlegroundMgr::QueueToArenaType.find(queueId) != BattlegroundMgr::QueueToArenaType.end()
+            || BattlegroundMgr::queueToBg.find(queueId) != BattlegroundMgr::queueToBg.end())
+            return false;
+
+        auto const& arenaTeamTypeItr = ArenaTeam::ArenaSlotByType.find(arenaTeamType);
+        if (arenaTeamTypeItr != ArenaTeam::ArenaSlotByType.end() && arenaTeamTypeItr->second != arenaSlot)
+            return false;
+
+        auto const& arenaReqPlayersItr = ArenaTeam::ArenaReqPlayersForType.find(arenaType);
+        if (arenaReqPlayersItr != ArenaTeam::ArenaReqPlayersForType.end())
+            return false;
+
+        return true;
+    }
+
+    void RegisterArenaIdMappings()
+    {
+        ArenaTeam::ArenaSlotByType.emplace(ARENA_TEAM_SOLO_3v3, ARENA_SLOT_SOLO_3v3);
+        ArenaTeam::ArenaReqPlayersForType.emplace(ARENA_TYPE_3v3_SOLO, 6);
+
+        BattlegroundMgr::queueToBg.emplace(BATTLEGROUND_QUEUE_3v3_SOLO, BATTLEGROUND_AA);
+        BattlegroundMgr::QueueToArenaType.emplace(BATTLEGROUND_QUEUE_3v3_SOLO, static_cast<ArenaType>(ARENA_TYPE_3v3_SOLO));
+        BattlegroundMgr::ArenaTypeToQueue.emplace(ARENA_TYPE_3v3_SOLO, bgQueueTypeId);
+    }
+}
 
 Solo3v3* Solo3v3::instance()
 {
@@ -40,6 +86,47 @@ Solo3v3* Solo3v3::instance()
 void Solo3v3::LoadConfig()
 {
     startMMR = sConfigMgr->GetOption<uint16>("Solo.3v3.StartMatchmakerRating", 1500);
+}
+
+void Solo3v3::LoadArenaIdConfig(bool reload)
+{
+    uint32 arenaType = sConfigMgr->GetOption<uint32>("Solo.3v3.ArenaType", ARENA_TYPE_3v3_SOLO);
+    uint32 arenaTeamType = sConfigMgr->GetOption<uint32>("Solo.3v3.ArenaTeamId", ARENA_TEAM_SOLO_3v3);
+    uint32 arenaSlot = sConfigMgr->GetOption<uint32>("Solo.3v3.ArenaSlot", ARENA_SLOT_SOLO_3v3);
+    uint32 queueId = sConfigMgr->GetOption<uint32>("Solo.3v3.BattlegroundQueueId", BATTLEGROUND_QUEUE_3v3_SOLO);
+
+    if (arenaIdConfigurationLoaded)
+    {
+        if (reload && (arenaType != ARENA_TYPE_3v3_SOLO ||
+            arenaTeamType != ARENA_TEAM_SOLO_3v3 || arenaSlot != ARENA_SLOT_SOLO_3v3 ||
+            queueId != BATTLEGROUND_QUEUE_3v3_SOLO))
+            LOG_WARN("module", "Solo 3v3 arena IDs cannot be changed through config reload; restart worldserver to apply them");
+        return;
+    }
+
+    if (!IsValidArenaIdConfiguration(arenaType, arenaTeamType, arenaSlot, queueId))
+    {
+        LOG_ERROR("module", "Invalid or conflicting Solo 3v3 arena IDs in config; using defaults");
+        arenaType = ARENA_TYPE_3v3_SOLO;
+        arenaTeamType = ARENA_TEAM_SOLO_3v3;
+        arenaSlot = ARENA_SLOT_SOLO_3v3;
+        queueId = BATTLEGROUND_QUEUE_3v3_SOLO;
+
+        if (!IsValidArenaIdConfiguration(arenaType, arenaTeamType, arenaSlot, queueId))
+        {
+            LOG_ERROR("module", "Default Solo 3v3 arena IDs conflict with another registration; " "Solo 3v3 queue mappings were not registered");
+            return;
+        }
+    }
+
+    ARENA_TYPE_3v3_SOLO = static_cast<uint8>(arenaType);
+    ARENA_TEAM_SOLO_3v3 = static_cast<uint8>(arenaTeamType);
+    ARENA_SLOT_SOLO_3v3 = static_cast<uint8>(arenaSlot);
+    BATTLEGROUND_QUEUE_3v3_SOLO = queueId;
+    bgQueueTypeId = static_cast<BattlegroundQueueTypeId>(queueId);
+
+    RegisterArenaIdMappings();
+    arenaIdConfigurationLoaded = true;
 }
 
 void Solo3v3::LoadMatchmakerRatings()
