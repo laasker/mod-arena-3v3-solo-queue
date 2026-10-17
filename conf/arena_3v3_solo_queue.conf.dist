@@ -233,6 +233,18 @@ Solo.3v3.VendorRating = 0
 
 Solo.3v3.ShowMessageOnLogin = 0
 
+
+#
+#    Solo.3v3.ShowTeamInfo
+#        Description: If true, players can see 3v3 Solo Team information in the PvP panel
+#                      Note: The solo 3v3 team will only show up if you use one of the default Arena Team slots (2, 3 or 5).
+#                            I recommend using the 5v5 slot (5), as it's the least played bracket.
+#        Default:     0 - (false)
+#                     1 - (true)
+
+Solo.3v3.ShowTeamInfo = 0
+
+
 # Arena identifiers used by the solo 3v3 queue.
 # These are read on worldserver startup. Changing them requires a restart.
 # Ensure custom arena types and queue IDs do not conflict with the core or other modules.

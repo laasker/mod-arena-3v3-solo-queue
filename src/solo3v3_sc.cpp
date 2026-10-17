@@ -596,7 +596,7 @@ bool NpcSolo3v3::CreateArenateam(Player* player, Creature* /*creature*/)
     // Create arena team
     ArenaTeam* arenaTeam = new ArenaTeam();
 
-    if (!arenaTeam->Create(player->GetGUID(), uint8(ARENA_TYPE_3v3_SOLO), teamName.str(), 4283124816, 45, 4294242303, 5, 4294705149))
+    if (!arenaTeam->Create(player->GetGUID(), ARENA_TEAM_SOLO_3v3, teamName.str(), 4283124816, 45, 4294242303, 5, 4294705149))
     {
         delete arenaTeam;
         return false;
@@ -927,7 +927,7 @@ void ConfigLoader3v3Arena::OnStartup()
 
 void Team3v3arena::OnGetSlotByType(const uint32 type, uint8& slot)
 {
-    if (type == ARENA_TYPE_3v3_SOLO)
+    if (type == ARENA_TEAM_SOLO_3v3) // not sure if this is correct
     {
         slot = ARENA_SLOT_SOLO_3v3;
     }
@@ -935,7 +935,7 @@ void Team3v3arena::OnGetSlotByType(const uint32 type, uint8& slot)
 
 void Team3v3arena::OnGetArenaPoints(ArenaTeam* at, float& points)
 {
-    if (at->GetType() == ARENA_TYPE_3v3_SOLO)
+    if (at->GetType() == ARENA_TEAM_SOLO_3v3)
     {
         const auto Members = at->GetMembers();
         uint8 playerLevel = sCharacterCache->GetCharacterLevelByGuid(Members.front().Guid);
@@ -1119,7 +1119,7 @@ void PlayerScript3v3Arena::OnPlayerGetArenaTeamId(Player* player, uint8 slot, ui
         return;
 
     if (slot == ARENA_SLOT_SOLO_3v3)
-        result = player->GetArenaTeamIdFromDB(player->GetGUID(), ARENA_TYPE_3v3_SOLO);
+        result = player->GetArenaTeamIdFromDB(player->GetGUID(), ARENA_TEAM_SOLO_3v3);
 }
 
 bool PlayerScript3v3Arena::OnPlayerNotSetArenaTeamInfoField(Player* player, uint8 slot, ArenaTeamInfoType /* type */, uint32 /* value */)
@@ -1129,7 +1129,7 @@ bool PlayerScript3v3Arena::OnPlayerNotSetArenaTeamInfoField(Player* player, uint
 
     if (slot == ARENA_SLOT_SOLO_3v3)
     {
-        return false;
+        return sConfigMgr->GetOption<bool>("Solo.3v3.ShowTeamInfo", true);
     }
 
     return true;
