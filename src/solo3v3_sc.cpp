@@ -918,6 +918,12 @@ void ConfigLoader3v3Arena::OnAfterConfigLoad(bool /*Reload*/)
 {
     sSolo->LoadConfig();
 
+    ARENA_TYPE_3v3_SOLO = sConfigMgr->GetOption<uint32>("Solo.3v3.ArenaType", 4);
+    ARENA_TEAM_SOLO_3v3 = sConfigMgr->GetOption<uint32>("Solo.3v3.ArenaTeamId", 4);
+    ARENA_SLOT_SOLO_3v3 = sConfigMgr->GetOption<uint32>("Solo.3v3.ArenaSlot", 4);
+    BATTLEGROUND_QUEUE_3v3_SOLO = sConfigMgr->GetOption<uint32>("Solo.3v3.BattlegroundQueueId", 12);
+    bgQueueTypeId = static_cast<BattlegroundQueueTypeId>(BATTLEGROUND_QUEUE_3v3_SOLO);
+
     ArenaTeam::ArenaSlotByType.emplace(ARENA_TEAM_SOLO_3v3, ARENA_SLOT_SOLO_3v3);
     ArenaTeam::ArenaReqPlayersForType.emplace(ARENA_TYPE_3v3_SOLO, 6);
 
