@@ -224,8 +224,9 @@ Solo.3v3.ArenaPointsMinLevel = 70
 
 #
 #    Solo.3v3.VendorRating
-#        Description: If true, 3v3soloQ rating will use to calculate highest personal-rating (extended costs).
-#                      Note: The vendor-item will show as not buyable (red), but players can buy it, if enabled and rating is high enough.
+#        Description: If true, include the Solo 3v3 team when checking vendor personal-rating requirements.
+#                     The effective rating is capped by both the member's personal rating and team rating.
+#                     The vendor may still show the item as unavailable (red) even when the server allows the purchase.
 #        Default:     0 - (false)
 #                     1 - (true)
 

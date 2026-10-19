@@ -1088,29 +1088,70 @@ void PlayerScript3v3Arena::OnPlayerLogin(Player* pPlayer)
 
 void PlayerScript3v3Arena::OnPlayerGetArenaPersonalRating(Player* player, uint8 slot, uint32& rating)
 {
+    if (!player || slot != ARENA_SLOT_SOLO_3v3)
+        return;
+
+    if (ArenaTeam* at = sArenaTeamMgr->GetArenaTeamById(player->GetArenaTeamId(ARENA_SLOT_SOLO_3v3)))
+    {
+        if (ArenaTeamMember* member = at->GetMember(player->GetGUID()))
+            rating = member->PersonalRating;
+    }
+
+    /*
     if (slot == ARENA_SLOT_SOLO_3v3)
     {
         if (ArenaTeam* at = sArenaTeamMgr->GetArenaTeamById(player->GetArenaTeamId(ARENA_SLOT_SOLO_3v3)))
         {
             rating = at->GetRating();
         }
-    }
+    }*/
 }
 
 void PlayerScript3v3Arena::OnPlayerGetMaxPersonalArenaRatingRequirement(const Player* player, uint32 minslot, uint32& maxArenaRating) const
 {
-    if (!sConfigMgr->GetOption<bool>("Solo.3v3.VendorRating", true))
+    if (!player || !sConfigMgr->GetOption<bool>("Solo.3v3.VendorRating", true) || ARENA_SLOT_SOLO_3v3 < minslot)
     {
         return;
     }
 
-    if (minslot < 6)
+    if (ArenaTeam* at = sArenaTeamMgr->GetArenaTeamById(player->GetArenaTeamId(ARENA_SLOT_SOLO_3v3)))
     {
-        if (ArenaTeam* at = sArenaTeamMgr->GetArenaTeamById(player->GetArenaTeamId(ARENA_SLOT_SOLO_3v3)))
-        {
-            maxArenaRating = std::max(at->GetRating(), maxArenaRating);
-        }
+        if (ArenaTeamMember* member = at->GetMember(player->GetGUID()))
+            maxArenaRating = std::max(std::min<uint32>(member->PersonalRating, at->GetRating()), maxArenaRating);
     }
+
+    // default:
+    //if (!sConfigMgr->GetOption<bool>("Solo.3v3.VendorRating", true))
+    //{
+    //    return;
+    //}
+
+    ////
+    //uint32 max_personal_rating = 0;
+    //for (uint8 i = minslot; i < MAX_ARENA_SLOT; ++i)
+    //{
+    //    if (i == 2 && !sConfigMgr->GetOption<bool>("Solo.3v3.VendorRating", true))
+    //        continue;
+
+    //    if (ArenaTeam* at = sArenaTeamMgr->GetArenaTeamById(player->GetArenaTeamId(i)))
+    //    {
+    //        uint32 p_rating = player->GetArenaPersonalRating(i);
+    //        uint32 t_rating = at->GetRating();
+    //        uint32 min_rating = std::min(p_rating, t_rating);
+
+    //        if (max_personal_rating < min_rating)
+    //            max_personal_rating = min_rating;
+    //    }
+    //}
+    ////
+
+    //if (minslot < 6)
+    //{
+    //    if (ArenaTeam* at = sArenaTeamMgr->GetArenaTeamById(player->GetArenaTeamId(ARENA_SLOT_SOLO_3v3)))
+    //    {
+    //        maxArenaRating = std::max(at->GetRating(), maxArenaRating);
+    //    }
+    //}
 }
 
 void PlayerScript3v3Arena::OnPlayerGetArenaTeamId(Player* player, uint8 slot, uint32& result)
