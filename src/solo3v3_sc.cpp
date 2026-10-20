@@ -1104,25 +1104,42 @@ void PlayerScript3v3Arena::OnPlayerGetArenaPersonalRating(Player* player, uint8 
     {
         if (ArenaTeam* at = sArenaTeamMgr->GetArenaTeamById(player->GetArenaTeamId(ARENA_SLOT_SOLO_3v3)))
         {
-            rating = at->GetRating();
+            if (ArenaTeamMember* member = at->GetMember(player->GetGUID()))
+                rating = member->PersonalRating;
         }
     }
 }
 
 void PlayerScript3v3Arena::OnPlayerGetMaxPersonalArenaRatingRequirement(const Player* player, uint32 minslot, uint32& maxArenaRating) const
 {
-    if (!sConfigMgr->GetOption<bool>("Solo.3v3.VendorRating", true))
-    {
+    if (!player)
         return;
-    }
 
-    if (minslot < 6)
+    bool includeSoloRating = sConfigMgr->GetOption<bool>("Solo.3v3.VendorRating", true);
+    uint32 maxPersonalRating = 0;
+    for (uint8 i = minslot; i < MAX_ARENA_SLOT; ++i)
     {
-        if (ArenaTeam* at = sArenaTeamMgr->GetArenaTeamById(player->GetArenaTeamId(ARENA_SLOT_SOLO_3v3)))
+        if (i == ARENA_SLOT_SOLO_3v3)
+            continue;
+
+        if (ArenaTeam* at = sArenaTeamMgr->GetArenaTeamById(player->GetArenaTeamId(i)))
         {
-            maxArenaRating = std::max(at->GetRating(), maxArenaRating);
+            uint32 personalRating = player->GetArenaPersonalRating(i);
+            maxPersonalRating = std::max(std::min(personalRating, at->GetRating()), maxPersonalRating);
         }
     }
+
+    if (includeSoloRating && ARENA_SLOT_SOLO_3v3 >= minslot)
+    {
+        uint32 soloTeamId = player->GetArenaTeamIdFromDB(player->GetGUID(), ARENA_TEAM_SOLO_3v3);
+        if (ArenaTeam* at = sArenaTeamMgr->GetArenaTeamById(soloTeamId))
+        {
+            if (ArenaTeamMember* member = at->GetMember(player->GetGUID()))
+                maxPersonalRating = std::max(std::min<uint32>(member->PersonalRating, at->GetRating()), maxPersonalRating);
+        }
+    }
+
+    maxArenaRating = maxPersonalRating;
 }
 
 void PlayerScript3v3Arena::OnPlayerGetArenaTeamId(Player* player, uint8 slot, uint32& result)
